@@ -259,6 +259,14 @@ footer{text-align:center;font-size:11px;color:var(--muted);padding:20px;border-t
     </div>
   </section>
 
+  <section>
+    <div class="sh"><h2>Conversion Depth · Step-by-Step Drop</h2><span class="hint">Where leads are lost and how 17% is calculated</span></div>
+    <div class="panel" style="padding:0;overflow:hidden;">
+      <div id="funnelDropRows"></div>
+      <div class="insight bad" style="margin:12px 14px 14px;" id="convMathBox"></div>
+    </div>
+  </section>
+
   <section class="grid two-col">
     <div class="panel">
       <h3>PM Scorecard · <span id="pmCount"></span> owners · <small style="font-weight:400;text-transform:none;">click row to filter below</small></h3>
@@ -600,7 +608,7 @@ function renderKPIs() {
   const kpis=[
     {l:'Target universe',    v:fmt(DATA.universe),              s:'Shortlisted creators',         c:''},
     {l:'MTD handed over',    v:DATA.mtd_contact,                s:`of ${DATA.monthly_target} target`, c: DATA.mtd_contact/DATA.monthly_target>=0.7?'green':'red'},
-    {l:'WA/Phone captured',  v:'24',                            s:'17% of contacted · funnel gate',c:'amber'},
+    {l:'Outreach → WA Rate',  v:Math.round(24/DATA.mtd_contact*100)+'%', s:'24 WA ÷ '+DATA.mtd_contact+' contacted = '+(24/DATA.mtd_contact*100).toFixed(1)+'%', c:'red'},
     {l:'Active pipeline',    v:d.length,                        s:inNeg.length+' in negotiation', c:''},
     {l:'GMV at risk',        v:fmtM(gmvRisk),                   s:inNeg.length+' stuck deals',    c:'blue'},
     {l:'Closed this month',  v:closed.length,                   s:'Done + deal-no-video',          c:'green'},
@@ -610,21 +618,78 @@ function renderKPIs() {
 }
 
 function renderFunnel() {
-  const inNeg=DATA.deals.filter(d=>d.s==='NEGOTIATION').length, cl=DATA.deals.filter(d=>d.s==='DONE'||d.s==='DEAL_CLOSED_NO_VIDEO').length;
+  const d=DATA.deals;
+  const inNeg=d.filter(x=>x.s==='NEGOTIATION').length;
+  const cl=d.filter(x=>x.s==='DONE'||x.s==='DEAL_CLOSED_NO_VIDEO').length;
+  const contacted=DATA.mtd_contact, wa=24;
+  const waEng=Math.round(wa*(1-DATA.conv.whatsapp_drop/100));
+  const negoSt=Math.round(waEng*0.71);
+  const waRate=Math.round(wa/contacted*100);
+  const negoClosedRate=Math.round(cl/Math.max(inNeg+cl,1)*100);
   const st=[
-    {n:fmt(DATA.universe),l:'1. Sourced'},
-    {n:'~1,800',l:'2. Acq. bucket'},
-    {n:DATA.mtd_contact,l:'3. Handed over',fc:'warn',cv:Math.round(DATA.mtd_contact/DATA.universe*100)+'%'},
-    {n:'24',l:'4. WA captured',fc:'bad',cv:'17%'},
-    {n:'~17',l:'5. WA engaged',fc:'warn',cv:'-30%'},
-    {n:'~12',l:'6. Nego start',fc:'bad',cv:'↓'},
-    {n:inNeg,l:'7. In nego',fc:'bad',cv:'stuck'},
-    {n:cl,l:'8. Deal closed'},
-    {n:'~'+Math.round(cl*(DATA.conv.sample_request_rate/100)),l:'9. Sample req.',fc:'warn',cv:DATA.conv.sample_request_rate+'%'},
-    {n:DATA.mtd_deals,l:'10. Video posted',fc:'good',cv:DATA.conv.sample_to_video+'%'},
-    {n:'GMV',l:'11. Revenue'},
+    {n:fmt(DATA.universe),  l:'1. Sourced',         fc:'',     cv:''},
+    {n:'~1,800',            l:'2. Acq. bucket',      fc:'warn', cv:'↓ 67% selected'},
+    {n:contacted,           l:'3. Handed over',      fc:'warn', cv:'↓ 8% of bucket'},
+    {n:wa,                  l:'4. WA captured',      fc:'bad',  cv:'↓ '+waRate+'% ←KEY'},
+    {n:'~'+waEng,           l:'5. WA engaged',       fc:'warn', cv:'↓ '+(100-DATA.conv.whatsapp_drop)+'% retained'},
+    {n:'~'+negoSt,          l:'6. Nego start',       fc:'bad',  cv:'↓ ~71%'},
+    {n:inNeg,               l:'7. In negotiation',   fc:'bad',  cv:'↑ '+inNeg+' stuck'},
+    {n:cl,                  l:'8. Deal closed',      fc:cl>0?'warn':'bad', cv:'↓ '+negoClosedRate+'% close rate'},
+    {n:'~'+Math.round(cl*(DATA.conv.sample_request_rate/100)),l:'9. Sample shipped',fc:'warn',cv:'↓ '+DATA.conv.sample_request_rate+'%'},
+    {n:DATA.mtd_deals,      l:'10. Video posted',    fc:'good', cv:'↓ '+DATA.conv.sample_to_video+'%'},
+    {n:'GMV',               l:'11. Revenue',         fc:'good', cv:'✓'},
   ];
   document.getElementById('funnel').innerHTML=st.map(s=>`<div class="fstage"><div class="fn">${s.n}</div><div class="fl">${s.l}</div>${s.cv?`<div class="fc ${s.fc||''}">${s.cv}</div>`:''}</div>`).join('');
+}
+
+function renderFunnelDrops() {
+  const d=DATA.deals;
+  const inNeg=d.filter(x=>x.s==='NEGOTIATION').length;
+  const cl=d.filter(x=>x.s==='DONE'||x.s==='DEAL_CLOSED_NO_VIDEO').length;
+  const contacted=DATA.mtd_contact, wa=24;
+  const waEng=Math.round(wa*(1-DATA.conv.whatsapp_drop/100));
+  const negoSt=Math.round(waEng*0.71);
+  const sampleN=Math.round(cl*(DATA.conv.sample_request_rate/100));
+  const vidN=DATA.mtd_deals;
+  const waRate=Math.round(wa/contacted*100);
+  const negoCloseRate=Math.round(cl/Math.max(inNeg+cl,1)*100);
+
+  const rows=[
+    {from:'Sourced',            to:'Acq. bucket',           entered:DATA.universe, next:1800,      conv:67,                    key:false, note:'Quality filter'},
+    {from:'Acq. bucket',        to:'Handed to Relations',   entered:1800,          next:contacted,  conv:Math.round(contacted/1800*100), key:false, note:'Capacity limit'},
+    {from:'Contacted',          to:'WA / Phone captured',   entered:contacted,     next:wa,         conv:waRate,                key:true,  note:'Biggest drop — 83% lost here'},
+    {from:'WA captured',        to:'WA engaged',            entered:wa,            next:waEng,      conv:100-DATA.conv.whatsapp_drop, key:false, note:'30% go silent after sharing WA'},
+    {from:'WA engaged',         to:'Negotiation start',     entered:waEng,         next:negoSt,     conv:71,                    key:false, note:'Estimated'},
+    {from:'In negotiation pool',to:'Deal closed',           entered:inNeg+cl,      next:cl,         conv:negoCloseRate,         key:false, note:inNeg+' currently stuck in nego'},
+    {from:'Deal closed',        to:'Sample shipped',        entered:cl,            next:sampleN,    conv:DATA.conv.sample_request_rate, key:false, note:''},
+    {from:'Sample shipped',     to:'Video posted',          entered:sampleN,       next:vidN,       conv:DATA.conv.sample_to_video, key:false, note:''},
+  ];
+
+  const hdr=`<div style="display:grid;grid-template-columns:220px 70px 1fr 70px 80px;align-items:center;gap:12px;padding:10px 16px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;background:var(--card-alt);">
+    <span>Transition</span><span style="text-align:right;">Entered</span><span>Conversion rate</span><span style="text-align:right;">Next stage</span><span style="text-align:right;">Lost</span>
+  </div>`;
+
+  const rowsHtml=rows.map(r=>{
+    const barColor=r.conv>=60?'#10B981':r.conv>=30?'#F59E0B':'#EF4444';
+    const rateColor=r.conv>=60?'var(--good)':r.conv>=30?'var(--warn)':'var(--bad)';
+    const lost=r.entered-r.next;
+    const bg=r.key?'background:var(--bad-bg);':'';
+    return`<div style="display:grid;grid-template-columns:220px 70px 1fr 70px 80px;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--line);${bg}">
+      <span style="font-size:12px;${r.key?'font-weight:700;':''}">${r.from} → ${r.to}${r.note?'<div style="font-size:10px;color:var(--muted);margin-top:1px;">'+r.note+'</div>':''}</span>
+      <span style="text-align:right;font-size:13px;font-weight:700;">${fmt(r.entered)}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;background:var(--card-alt);border-radius:4px;overflow:hidden;height:10px;">
+          <div style="width:${r.conv}%;height:100%;background:${barColor};border-radius:4px;"></div>
+        </div>
+        <span style="font-size:${r.key?'17px':'13px'};font-weight:${r.key?900:700};color:${rateColor};min-width:36px;text-align:right;">${r.conv}%</span>
+      </div>
+      <span style="text-align:right;font-size:13px;font-weight:700;">${fmt(r.next)}</span>
+      <span style="text-align:right;font-size:12px;color:var(--bad);font-weight:700;">${lost>0?'−'+fmt(lost):''}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('funnelDropRows').innerHTML=hdr+rowsHtml;
+  document.getElementById('convMathBox').innerHTML=`<h4>How is ${waRate}% calculated?</h4><p>${wa} WA/phone numbers collected ÷ ${contacted} creators the Relations team reached out to = ${(wa/contacted*100).toFixed(1)}% → rounded to <b>${waRate}%</b>. This is the single largest drop in the funnel — ${contacted-wa} of ${contacted} leads are lost at this one gate. The 43% ghost rate and 17% upfront-only demand together account for ${Math.round((43+17)/100*(contacted-wa))} of those ${contacted-wa} lost leads.</p>`;
 }
 
 function renderPMTable() {
@@ -900,7 +965,7 @@ async function init() {
   buildEnriched();
   populatePMFilter();
   // page 1 always (visible on load)
-  renderKPIs(); renderFunnel(); renderPMTable(); renderActions(); renderStuck(); renderMatrix(); renderDealTable(); renderNegoDepth();
+  renderKPIs(); renderFunnel(); renderFunnelDrops(); renderPMTable(); renderActions(); renderStuck(); renderMatrix(); renderDealTable(); renderNegoDepth();
   // reset lazy flags so charts re-draw after a refresh
   RENDERED.pipeline=false; RENDERED.conversations=false; RENDERED.tat=false;
   // render whichever tab is currently active
