@@ -132,6 +132,16 @@ tr.pm-row.sel td{background:var(--accent-bg)!important;}
 .nm{background:var(--card-alt);color:var(--muted);}
 .nr2{background:#D1FAE5;color:#065F46;}
 .nw{background:var(--card-alt);color:#94A3B8;border:1px solid var(--line);}
+/* sub-stage badges — same .nxt base */
+.ss-close{background:#DCFCE7;color:#14532D;}
+.ss-call{background:#EDE9FE;color:#5B21B6;}
+.ss-appr{background:#FEF9C3;color:#713F12;}
+.ss-counter{background:#FEF3C7;color:#92400E;}
+.ss-terms{background:#FFE4E6;color:#9F1239;}
+.ss-disc{background:#DBEAFE;color:#1E3A8A;}
+.ss-offer{background:#E0F2FE;color:#0369A1;}
+.ss-ghost{background:#FEE2E2;color:#B91C1C;}
+.ss-nd{background:#F1F5F9;color:#94A3B8;}
 
 .stale{font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap;}
 .sh-hot{background:var(--bad-bg);color:var(--bad);}
@@ -268,6 +278,14 @@ footer{text-align:center;font-size:11px;color:var(--muted);padding:20px;border-t
     <div class="panel">
       <h3>GMV Band × Stage · value distribution</h3>
       <table class="mx" id="matrix"></table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sh"><h2>Negotiation Depth · Where are deals stuck?</h2><span class="hint">Sub-stage classification of all active negotiations · auto-derived from PM comments</span></div>
+    <div class="panel">
+      <div class="grid" id="negoSubStages" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:16px;"></div>
+      <div class="stbl-wrap"><table id="negoDepthTable"></table></div>
     </div>
   </section>
 
@@ -509,6 +527,70 @@ function staleBadge(d){ if(d==null)return'<span style="color:var(--muted)">—</
 function rateColor(r){ if(r>=20)return'color:var(--good);font-weight:700;'; if(r>=12)return'color:var(--warn);font-weight:700;'; return'color:var(--bad);font-weight:700;'; }
 function killChart(id){ if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];} }
 
+// ── NEGOTIATION SUB-STAGE CLASSIFICATION ──
+const SUBSTAGES=[
+  {key:'NEAR_CLOSE',   label:'Terms agreed',      cls:'ss-close',   ord:0},
+  {key:'CALL_PENDING', label:'Call pending',       cls:'ss-call',    ord:1},
+  {key:'APPROVAL_WAIT',label:'Internal approval',  cls:'ss-appr',    ord:2},
+  {key:'COUNTER_RCVD', label:'Counter-offer rx',   cls:'ss-counter', ord:3},
+  {key:'TERMS_CONFLICT',label:'Terms conflict',    cls:'ss-terms',   ord:4},
+  {key:'IN_DISCUSSION',label:'In discussion',      cls:'ss-disc',    ord:5},
+  {key:'OFFER_SENT',   label:'Offer sent/waiting', cls:'ss-offer',   ord:6},
+  {key:'GHOSTED',      label:'Ghosted',            cls:'ss-ghost',   ord:7},
+  {key:'NO_DATA',      label:'No data',            cls:'ss-nd',      ord:8},
+];
+function subStage(d){
+  const c=(d.c||'').toLowerCase();
+  const nx=(d.nx||'');
+  // Positive close
+  if(/tc.{0,5}accep|okay with deal|happy with deal|deal accepted/.test(c))return'NEAR_CLOSE';
+  // Internal approval
+  if(nx==='CHASE INTERNAL APPROVAL'||/under approval/.test(c))return'APPROVAL_WAIT';
+  // Call pending
+  if(nx==='BOOK A CALL'||/confirm.*call|confim|asked to.*email/.test(c))return'CALL_PENDING';
+  // Ghosted
+  if(/not reply|no reply|no rwply|left on seen|waiting for reply|haven.*reply|no response/.test(c))return'GHOSTED';
+  // Creator named price / high ask
+  if(/\$\s*\d|high ask|\d+.*per video|\d+.*per vid|\d+.*a video|\d+.*for \d+\s*vid|\d+\s+for\s+\d+/.test(c))return'COUNTER_RCVD';
+  // Terms fundamental conflict
+  if(/upfront|not relevant|irrelevant|only.*retainer|retainer only|can.t take|wrong niche|wrong username|only paid|paid collab only/.test(c))return'TERMS_CONFLICT';
+  // Active discussion
+  if(/negotiat|in talks|discuss/.test(c))return'IN_DISCUSSION';
+  // Offer sent / waiting
+  if(/deal offered|deal sent|message sent|will message|will text|message today|text today|waiting to hear|sent the deal/.test(c)||(d.o>0&&!c.trim()))return'OFFER_SENT';
+  if(d.o>0)return'OFFER_SENT';
+  return'NO_DATA';
+}
+function subStageBadge(key){
+  const ss=SUBSTAGES.find(s=>s.key===key);
+  if(!ss)return'';
+  return`<span class="nxt ${ss.cls}">${ss.label}</span>`;
+}
+function renderNegoDepth(){
+  const nego=ENRICHED.filter(d=>d.s==='NEGOTIATION');
+  const counts={};SUBSTAGES.forEach(s=>counts[s.key]=0);
+  const gmvs={};SUBSTAGES.forEach(s=>gmvs[s.key]=0);
+  nego.forEach(d=>{const ss=subStage(d);counts[ss]++;gmvs[ss]+=(d.g||0);});
+
+  // Sub-stage KPI boxes
+  document.getElementById('negoSubStages').innerHTML=SUBSTAGES
+    .filter(s=>counts[s.key]>0)
+    .map(s=>`<div class="kpi"><div class="lbl" style="display:flex;align-items:center;gap:4px;"><span class="nxt ${s.cls}" style="font-size:9px;">${s.label}</span></div><div class="val" style="font-size:20px;">${counts[s.key]}</div><div class="sub">${fmtM(gmvs[s.key])} GMV</div></div>`).join('');
+
+  // PM × sub-stage table
+  const visKeys=['NEAR_CLOSE','CALL_PENDING','COUNTER_RCVD','IN_DISCUSSION','OFFER_SENT','GHOSTED','APPROVAL_WAIT','TERMS_CONFLICT'];
+  const pms={};
+  nego.forEach(d=>{
+    const p=d.p||'Unassigned'; if(!pms[p])pms[p]={};SUBSTAGES.forEach(s=>pms[p][s.key]=pms[p][s.key]||0);
+    pms[p][subStage(d)]++;
+  });
+  const pmRows=Object.entries(pms).filter(([n])=>n&&n!=='Khushi?'&&n!=='nan').sort((a,b)=>{
+    return Object.values(b[1]).reduce((x,y)=>x+y,0)-Object.values(a[1]).reduce((x,y)=>x+y,0);
+  });
+  const colStyle={NEAR_CLOSE:'color:var(--good);',CALL_PENDING:'color:#7C3AED;',COUNTER_RCVD:'color:var(--warn);',GHOSTED:'color:var(--bad);',TERMS_CONFLICT:'color:var(--bad);'};
+  document.getElementById('negoDepthTable').innerHTML=`<thead><tr><th>PM (Relations)</th>${visKeys.map(k=>{const ss=SUBSTAGES.find(s=>s.key===k);return`<th class="r"><span class="nxt ${ss.cls}" style="font-size:9px;">${ss.label}</span></th>`;}).join('')}<th class="r">Total</th></tr></thead><tbody>${pmRows.map(([n,v])=>{const tot=Object.values(v).reduce((a,b)=>a+b,0);return`<tr><td><b>${n}</b></td>${visKeys.map(k=>`<td class="r" style="${colStyle[k]||'color:var(--muted);'}font-weight:${v[k]>0?700:400};">${v[k]>0?v[k]:'—'}</td>`).join('')}<td class="r"><b>${tot}</b></td></tr>`;}).join('')}</tbody>`;
+}
+
 // ════════════════════════════════
 // PAGE 1 — OVERVIEW
 // ════════════════════════════════
@@ -604,7 +686,7 @@ function renderDealTable() {
   const res=filteredDeals();
   document.getElementById('fCount').textContent=res.length+' deals';
   document.getElementById('dealHint').textContent=ENRICHED.length+' total · '+res.length+' shown';
-  document.getElementById('dealTable').innerHTML=`<thead><tr><th class="${thc('h')}" data-sf="h">Creator</th><th class="${thc('p')}" data-sf="p">PM</th><th>Stage</th><th class="${thc('g')} r" data-sf="g">GMV</th><th>Next</th><th class="${thc('l')} r" data-sf="l">Last reply</th><th class="${thc('o')} r" data-sf="o">Out/In</th><th>Note</th></tr></thead><tbody>${res.map(d=>{ const c=d.l>=5?'urgent':d.l>=3?'warn-r':''; return`<tr class="${c}"><td><a href="https://www.tiktok.com/@${d.h}" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:700;">@${d.h}</a></td><td><span style="font-size:11px;background:var(--card-alt);padding:2px 7px;border-radius:4px;border:1px solid var(--line);">${d.p||'—'}</span></td><td>${stageBadge(d.s)}</td><td class="r" style="font-weight:700;">${fmtM(d.g)}</td><td>${nxtBadge(d.nx)}</td><td class="r">${staleBadge(d.l)}</td><td class="r" style="color:var(--muted);">${d.o}/${d.i}</td><td style="font-size:11px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(d.c||'').replace(/"/g,"'")}\">${d.c?d.c.substring(0,45)+(d.c.length>45?'…':''):'—'}</td></tr>`;}).join('')}</tbody>`;
+  document.getElementById('dealTable').innerHTML=`<thead><tr><th class="${thc('h')}" data-sf="h">Creator</th><th class="${thc('p')}" data-sf="p">PM</th><th>Stage</th><th class="${thc('g')} r" data-sf="g">GMV</th><th>Next</th><th class="${thc('l')} r" data-sf="l">Last reply</th><th class="${thc('o')} r" data-sf="o">Out/In</th><th>Note</th></tr></thead><tbody>${res.map(d=>{ const c=d.l>=5?'urgent':d.l>=3?'warn-r':''; return`<tr class="${c}"><td><a href="https://www.tiktok.com/@${d.h}" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:700;">@${d.h}</a></td><td><span style="font-size:11px;background:var(--card-alt);padding:2px 7px;border-radius:4px;border:1px solid var(--line);">${d.p||'—'}</span></td><td>${stageBadge(d.s)}${d.s==='NEGOTIATION'?'<div style="margin-top:3px;">'+subStageBadge(subStage(d))+'</div>':''}</td><td class="r" style="font-weight:700;">${fmtM(d.g)}</td><td>${nxtBadge(d.nx)}</td><td class="r">${staleBadge(d.l)}</td><td class="r" style="color:var(--muted);">${d.o}/${d.i}</td><td style="font-size:11px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(d.c||'').replace(/"/g,"'").replace(/\n/g,' ')}">${d.c?d.c.replace(/\n/g,' ').substring(0,45)+(d.c.length>45?'…':''):'—'}</td></tr>`;}).join('')}</tbody>`;
   document.querySelectorAll('#dealTable th.sortable').forEach(th=>th.addEventListener('click',()=>{ const f=th.dataset.sf; if(F.sf===f){F.sd*=-1;}else{F.sf=f;F.sd=-1;} renderDealTable(); }));
 }
 function populatePMFilter() {
@@ -807,6 +889,7 @@ function renderTAT() {
 // ════════════════════════════════
 // INIT & PLUMBING
 // ════════════════════════════════
+const RENDERED={pipeline:false,conversations:false,tat:false};
 function renderLastUpdated() {
   document.getElementById('lastUpd').textContent='Updated '+new Date().toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'});
 }
@@ -816,24 +899,33 @@ async function init() {
   if(!DATA)return;
   buildEnriched();
   populatePMFilter();
-  // page 1
-  renderKPIs(); renderFunnel(); renderPMTable(); renderActions(); renderStuck(); renderMatrix(); renderDealTable();
-  // page 2
-  renderPipeline();
-  // page 3
-  renderConversations();
-  // page 4
-  renderTAT();
+  // page 1 always (visible on load)
+  renderKPIs(); renderFunnel(); renderPMTable(); renderActions(); renderStuck(); renderMatrix(); renderDealTable(); renderNegoDepth();
+  // reset lazy flags so charts re-draw after a refresh
+  RENDERED.pipeline=false; RENDERED.conversations=false; RENDERED.tat=false;
+  // render whichever tab is currently active
+  const activeTab=document.querySelector('.tab-btn.active')?.dataset?.tab;
+  if(activeTab==='pipeline'){renderPipeline();RENDERED.pipeline=true;}
+  else if(activeTab==='conversations'){renderConversations();RENDERED.conversations=true;}
+  else if(activeTab==='tat'){renderTAT();RENDERED.tat=true;}
   renderLastUpdated();
 }
 
-// Tabs
+// Tabs — lazy render: only draw charts when tab becomes visible
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('page-'+btn.dataset.tab).classList.add('active');
+    const tab=btn.dataset.tab;
+    document.getElementById('page-'+tab).classList.add('active');
+    if(DATA){
+      if(tab==='pipeline'&&!RENDERED.pipeline){renderPipeline();RENDERED.pipeline=true;}
+      else if(tab==='conversations'&&!RENDERED.conversations){renderConversations();RENDERED.conversations=true;}
+      else if(tab==='tat'&&!RENDERED.tat){renderTAT();RENDERED.tat=true;}
+      // resize any already-rendered charts (handles 0-size render on hidden canvas)
+      setTimeout(()=>Object.values(CHARTS).forEach(c=>{try{c.resize();}catch(e){}}),60);
+    }
   });
 });
 
