@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Creator Acquisition — Funnel Cockpit</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#FAFAFA; --ink:#0F172A; --ink-soft:#334155; --muted:#64748B;
+  --line:#E2E8F0; --card:#FFFFFF; --card-alt:#F8FAFC;
+  --good:#15803D; --warn:#B45309; --bad:#B91C1C; --accent:#1D4ED8;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:14px;-webkit-font-smoothing:antialiased;}
+.container{max-width:1380px;margin:0 auto;padding:28px;}
+
+header.top{display:flex;align-items:center;justify-content:space-between;
+  padding-bottom:20px;border-bottom:1px solid var(--line);margin-bottom:24px;}
+header.top h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-0.01em;}
+header.top .meta{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--muted);}
+.pill{padding:4px 10px;border-radius:999px;background:#FEF3C7;color:#92400E;font-weight:600;}
+header.top button{background:var(--ink);color:white;border:0;padding:8px 14px;
+  border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+header.top button:hover{background:#1E293B;}
+
+.grid{display:grid;gap:12px;}
+.kpis{grid-template-columns:repeat(7,1fr);margin-bottom:20px;}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+.kpi .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:600;}
+.kpi .value{font-size:22px;font-weight:700;margin-top:4px;}
+.kpi .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.kpi.warn .value{color:var(--bad);}
+.kpi.ok .value{color:var(--good);}
+.kpi.accent .value{color:var(--accent);}
+
+section{margin-bottom:28px;}
+.section-title{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;}
+.section-title h2{font-size:14px;font-weight:700;margin:0;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-soft);}
+.section-title .hint{font-size:12px;color:var(--muted);}
+
+.funnel-wrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;}
+.funnel{display:grid;grid-template-columns:repeat(11,1fr);gap:8px;}
+.stage{background:var(--card-alt);border:1px solid var(--line);border-radius:8px;padding:10px 8px;text-align:center;}
+.stage .n{font-size:18px;font-weight:700;}
+.stage .lbl{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.2;}
+.stage .conv{font-size:10px;margin-top:4px;font-weight:600;padding:1px 6px;border-radius:999px;display:inline-block;}
+.stage .conv.bad{background:#FEE2E2;color:var(--bad);}
+.stage .conv.warn{background:#FEF3C7;color:var(--warn);}
+.stage .conv.good{background:#DCFCE7;color:var(--good);}
+
+.two-col{grid-template-columns:1.4fr 1fr;}
+@media(max-width:1100px){.two-col,.kpis{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:700px){.two-col,.kpis{grid-template-columns:repeat(2,1fr);}}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;}
+.panel h3{font-size:13px;margin:0 0 12px;font-weight:700;letter-spacing:0.02em;}
+
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);}
+th{font-weight:600;color:var(--muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em;}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+tr:last-child td{border-bottom:0;}
+tr:hover td{background:var(--card-alt);}
+
+th.sortable{cursor:pointer;user-select:none;}
+th.sortable:hover{color:var(--ink);}
+th.sorted{color:var(--accent);}
+th.sorted::after{content:' ↓';}
+th.sorted.asc::after{content:' ↑';}
+
+.badge{padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;display:inline-block;white-space:nowrap;}
+.badge.neg{background:#FEE2E2;color:var(--bad);}
+.badge.done{background:#DCFCE7;color:var(--good);}
+.badge.closed-no-vid{background:#FEF3C7;color:var(--warn);}
+.badge.not-contacted{background:#E0F2FE;color:#0369A1;}
+.badge.no-reply{background:#FAE8FF;color:#86198F;}
+.badge.rejected{background:#F1F5F9;color:var(--muted);}
+
+.actions{grid-template-columns:repeat(4,1fr);}
+.action{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--card-alt);
+  cursor:pointer;transition:border-color 0.12s,background 0.12s;}
+.action:hover{background:#EFF6FF;border-color:#93C5FD;}
+.action.active{background:#EFF6FF;border-color:var(--accent);}
+.action.active .label{color:var(--accent);}
+.action .label{font-size:11px;color:var(--muted);font-weight:600;}
+.action .count{font-size:24px;font-weight:700;margin-top:2px;}
+.action .play{font-size:11px;color:var(--ink-soft);margin-top:4px;line-height:1.3;}
+
+.filter-bar{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+.filter-bar label{font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap;}
+.filter-bar select,.filter-bar input[type=text]{
+  border:1px solid var(--line);border-radius:6px;padding:5px 10px;
+  font-size:12px;background:var(--bg);color:var(--ink);outline:none;}
+.filter-bar select:focus,.filter-bar input:focus{border-color:var(--accent);}
+.filter-bar .sep{width:1px;height:20px;background:var(--line);}
+.filter-bar .clear-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--line);
+  font-size:12px;cursor:pointer;background:var(--card-alt);color:var(--muted);}
+.filter-bar .clear-btn:hover{border-color:var(--bad);color:var(--bad);}
+.filter-bar .result-count{font-size:12px;color:var(--muted);margin-left:auto;font-weight:600;}
+
+.deal-table-wrap{max-height:580px;overflow-y:auto;border-radius:0 0 12px 12px;}
+.deal-table-wrap thead th{position:sticky;top:0;background:var(--card);z-index:1;border-top:1px solid var(--line);}
+
+tr.urgent-row td:first-child{border-left:3px solid var(--bad);padding-left:7px;}
+tr.warn-row td:first-child{border-left:3px solid #F59E0B;padding-left:7px;}
+
+.stale{font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px;white-space:nowrap;}
+.stale.hot{background:#FEE2E2;color:var(--bad);}
+.stale.warm{background:#FEF3C7;color:var(--warn);}
+.stale.fresh{background:#DCFCE7;color:var(--good);}
+
+.nxt{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap;display:inline-block;}
+.nxt-follow{background:#DBEAFE;color:#1E40AF;}
+.nxt-push{background:#DCFCE7;color:#15803D;}
+.nxt-counter{background:#FEF3C7;color:var(--warn);}
+.nxt-call{background:#FAE8FF;color:#7C3AED;}
+.nxt-chase{background:#FEE2E2;color:var(--bad);}
+.nxt-monitor{background:#F1F5F9;color:var(--muted);}
+.nxt-reengage{background:#D1FAE5;color:#065F46;}
+.nxt-wait{background:#F8FAFC;color:#94A3B8;border:1px solid var(--line);}
+
+tr.pm-row{cursor:pointer;}
+tr.pm-row.selected td{background:#EFF6FF !important;}
+
+.matrix{width:100%;border-collapse:collapse;font-size:11px;}
+.matrix th,.matrix td{padding:6px 8px;text-align:center;border:1px solid var(--line);}
+.matrix th{background:var(--card-alt);font-weight:600;color:var(--ink-soft);}
+.matrix td{font-variant-numeric:tabular-nums;}
+
+.live-box{background:#ECFEFF;border:1px solid #A5F3FC;border-radius:12px;padding:16px 18px;}
+.live-box h3{margin-top:0;color:#0E7490;}
+.live-box ol{margin:6px 0 0 18px;padding:0;color:var(--ink-soft);}
+.live-box ol li{margin:5px 0;line-height:1.5;font-size:13px;}
+.chart-wrap{position:relative;height:280px;}
+footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);text-align:center;}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="top">
+  <div>
+    <h1>Creator Acquisition — Funnel Cockpit</h1>
+    <div class="meta" style="margin-top:4px;">
+      <span>Sourcing → GMV · End-to-end visibility</span>
+      <span class="pill" id="dataSourceBadge">Snapshot · wire to Sheets for live</span>
+    </div>
+  </div>
+  <div class="meta">
+    <span id="lastUpdated"></span>
+    <button id="refreshBtn">↺ Refresh</button>
+  </div>
+</header>
+
+<div class="grid kpis" id="kpis"></div>
+
+<section>
+  <div class="section-title">
+    <h2>Acquisition Funnel</h2>
+    <span class="hint">11 stages · counts at each gate · conversion ratios</span>
+  </div>
+  <div class="funnel-wrap"><div class="funnel" id="funnel"></div></div>
+</section>
+
+<section class="grid two-col">
+  <div class="panel">
+    <h3>PM Scorecard · <span id="pmCount"></span> owners · <small style="font-weight:400;color:var(--muted);">click row to filter</small></h3>
+    <table id="pmTable"></table>
+  </div>
+  <div class="panel">
+    <h3>Action Queue · <small style="font-weight:400;color:var(--muted);">click card to filter deals below</small></h3>
+    <div class="grid actions" id="actions"></div>
+  </div>
+</section>
+
+<section class="grid two-col">
+  <div class="panel">
+    <h3>Stuck in Negotiation · top GMV · <span id="negGMVLabel" style="color:var(--accent);"></span> at risk</h3>
+    <table id="stuckTable"></table>
+  </div>
+  <div class="panel">
+    <h3>Channel Mix · April baseline</h3>
+    <div class="chart-wrap"><canvas id="channelChart"></canvas></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5;">
+      Email highest converting (40%). TT DM (30%) dropped sharply in May. Affiliate Chat (20%) behind two click walls — worst converter.
+    </div>
+  </div>
+</section>
+
+<section id="allDealsSection">
+  <div class="section-title">
+    <h2>All Deals</h2>
+    <span class="hint" id="totalDealsLabel"></span>
+  </div>
+  <div class="filter-bar">
+    <label>PM</label>
+    <select id="filterPM"><option value="">All PMs</option></select>
+    <div class="sep"></div>
+    <label>Stage</label>
+    <select id="filterStage">
+      <option value="">All stages</option>
+      <option value="NEGOTIATION">Negotiation</option>
+      <option value="DONE">Done</option>
+      <option value="DEAL_CLOSED_NO_VIDEO">Closed · no video</option>
+      <option value="NOT_CONTACTED">Not contacted</option>
+      <option value="CONTACTED_NO_REPLY">No reply</option>
+      <option value="REJECTED_OR_PASS">Pass</option>
+    </select>
+    <div class="sep"></div>
+    <label>Next action</label>
+    <select id="filterAction">
+      <option value="">All actions</option>
+      <option value="FOLLOW UP">Follow up</option>
+      <option value="PUSH TO CLOSE">Push to close</option>
+      <option value="SEND COUNTER-OFFER">Send counter-offer</option>
+      <option value="BOOK A CALL">Book a call</option>
+      <option value="CHASE INTERNAL APPROVAL">Chase approval</option>
+      <option value="MONITOR">Monitor</option>
+      <option value="RE-ENGAGE — NEW ANGLE">Re-engage</option>
+      <option value="WAIT / FOLLOW UP TOMORROW">Wait</option>
+    </select>
+    <div class="sep"></div>
+    <input type="text" id="searchInput" placeholder="Search creator…" style="width:160px;" />
+    <button class="clear-btn" id="clearFilters">Clear all</button>
+    <span class="result-count" id="resultCount"></span>
+  </div>
+  <div class="panel" style="padding:0;overflow:hidden;">
+    <div class="deal-table-wrap">
+      <table id="dealTable"></table>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <h3>GMV Band × Stage · where value is sitting</h3>
+  <table class="matrix" id="matrix"></table>
+  <div style="font-size:11px;color:var(--muted);margin-top:10px;">
+    Most of the $5–25k tier is parked in NEGOTIATION. High-GMV tiers ($50k+) have fewer deals but each matters more — track those individually.
+  </div>
+</section>
+
+<section class="live-box">
+  <h3>How to make this truly live (next 3 steps)</h3>
+  <ol>
+    <li><b>Pick the source-of-truth tab</b> in your Google Sheet for each phase (TOFU outreach, handover, acquisition_stage_buckets, sample/video tracker, channel log).</li>
+    <li><b>Publish each tab to web as CSV</b> (Sheet → File → Share → Publish to web → CSV). Paste the URLs into the <code>SHEET_URLS</code> object at the top of this file.</li>
+    <li><b>Host this HTML</b> on Railway / Vercel / GitHub Pages and share the link with Young, Abhinav and the relations PMs. Page auto-refreshes every 60s.</li>
+  </ol>
+  <div style="font-size:11px;color:var(--muted);margin-top:10px;">
+    Long term: replicate in Looker Studio (Google's free Sheets-native dashboard) or push to Root Labs to be added to Frontline.
+  </div>
+</section>
+
+<footer>Creator Acquisition · Funnel Cockpit v2 · Owner: Viral Desai · Mosaic Wellness</footer>
+</div>
+
+<script>
+// =========================================================================
+// SHEET_URLS — paste Google Sheets "Publish to web → CSV" links here
+// =========================================================================
+const SHEET_URLS = { deals: '', next_steps: '' };
+const AUTO_REFRESH_MS = 60 * 1000;
+
+let DATA = null;
+let ENRICHED = [];
+let chartInst = null;
+
+// Filter + sort state
+const F = { pm:'', stage:'', action:'', search:'', sortField:'g', sortDir:-1 };
+
+// ---------- Data loader ----------
+async function loadData() {
+  if (!SHEET_URLS.deals && !SHEET_URLS.next_steps) {
+    const res = await fetch('./dashboard_data.json');
+    DATA = await res.json();
+    document.getElementById('dataSourceBadge').textContent = 'Snapshot · wire to Sheets for live';
+    return;
+  }
+  document.getElementById('dataSourceBadge').textContent = 'Live · Google Sheets';
+  Object.assign(document.getElementById('dataSourceBadge').style, { background:'#DCFCE7', color:'#15803D' });
+}
+
+function buildEnriched() {
+  const nx = {};
+  (DATA.next || []).forEach(n => { nx[n.h] = n.n; });
+  ENRICHED = DATA.deals.map(d => ({ ...d, nx: nx[d.h] || '' }));
+}
+
+// ---------- Formatters ----------
+function fmt(n) {
+  if (n == null || n === '') return '—';
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1000) return (n/1e3).toFixed(1)+'k';
+  return String(n);
+}
+function fmtMoney(n) {
+  if (!n) return '—';
+  if (n >= 1e6) return '$'+(n/1e6).toFixed(2)+'M';
+  if (n >= 1000) return '$'+(n/1e3).toFixed(1)+'k';
+  return '$'+n;
+}
+function pct(a,b) { return b ? Math.round(a*100/b)+'%' : '—'; }
+
+function stageBadge(s) {
+  const cls = {NEGOTIATION:'neg',DONE:'done',DEAL_CLOSED_NO_VIDEO:'closed-no-vid',
+    NOT_CONTACTED:'not-contacted',CONTACTED_NO_REPLY:'no-reply',REJECTED_OR_PASS:'rejected'}[s]||'';
+  const lbl = {NEGOTIATION:'Negotiation',DONE:'Done',DEAL_CLOSED_NO_VIDEO:'Closed · no vid',
+    NOT_CONTACTED:'Not contacted',CONTACTED_NO_REPLY:'No reply',REJECTED_OR_PASS:'Pass'}[s]||s;
+  return `<span class="badge ${cls}">${lbl}</span>`;
+}
+
+function nxtBadge(nx) {
+  if (!nx) return '';
+  const map = {
+    'FOLLOW UP':               ['nxt-follow',  'Follow up'],
+    'PUSH TO CLOSE':           ['nxt-push',    'Push to close'],
+    'SEND COUNTER-OFFER':      ['nxt-counter', 'Counter-offer'],
+    'BOOK A CALL':             ['nxt-call',    'Book call'],
+    'CHASE INTERNAL APPROVAL': ['nxt-chase',   'Chase approval'],
+    'MONITOR':                 ['nxt-monitor', 'Monitor'],
+    'RE-ENGAGE — NEW ANGLE': ['nxt-reengage','Re-engage'],
+    'WAIT / FOLLOW UP TOMORROW':['nxt-wait',   'Wait'],
+  };
+  const [cls,lbl] = map[nx] || ['nxt-monitor',nx];
+  return `<span class="nxt ${cls}">${lbl}</span>`;
+}
+
+function staleBadge(days) {
+  if (days == null) return '<span style="color:var(--muted);font-size:11px;">—</span>';
+  if (days >= 5) return `<span class="stale hot">${days}d ago</span>`;
+  if (days >= 3) return `<span class="stale warm">${days}d ago</span>`;
+  return `<span class="stale fresh">${days}d ago</span>`;
+}
+
+// ---------- KPIs ----------
+function renderKPIs() {
+  const deals = DATA.deals;
+  const inNeg = deals.filter(d => d.s === 'NEGOTIATION');
+  const closed = deals.filter(d => d.s === 'DONE' || d.s === 'DEAL_CLOSED_NO_VIDEO');
+  const gmvAtRisk = inNeg.reduce((a,d) => a+(d.g||0), 0);
+  const kpis = [
+    { label:'Target universe',   value:fmt(DATA.universe),                  sub:'Sourced & filtered',            cls:'' },
+    { label:'MTD contacted',     value:DATA.mtd_contact,                    sub:'Outreach attempts this month',  cls:'' },
+    { label:'Outreach → Phone',  value:DATA.conv.outreach_to_phone+'%',     sub:'The headline gap',              cls:'warn' },
+    { label:'Pipeline',          value:deals.length,                        sub:inNeg.length+' in negotiation',  cls:'' },
+    { label:'GMV at risk',       value:fmtMoney(gmvAtRisk),                 sub:inNeg.length+' deals stuck',     cls:'accent' },
+    { label:'Closed this month', value:closed.length,                       sub:'Done + deal-no-video',          cls:'ok' },
+    { label:'MTD videos posted', value:DATA.mtd_deals,                      sub:'vs '+DATA.last_month+' last mo',cls:DATA.mtd_deals>=DATA.last_month?'ok':'warn' },
+  ];
+  document.getElementById('kpis').innerHTML = kpis.map(k =>
+    `<div class="kpi ${k.cls}">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+// ---------- Funnel ----------
+function renderFunnel() {
+  const inNeg    = DATA.deals.filter(d => d.s === 'NEGOTIATION').length;
+  const closedAll = DATA.deals.filter(d => d.s === 'DONE' || d.s === 'DEAL_CLOSED_NO_VIDEO').length;
+  const stages = [
+    { n:fmt(DATA.universe), lbl:'1. Sourced' },
+    { n:'~1,800',           lbl:'2. Acquisition bucket' },
+    { n:DATA.mtd_contact,   lbl:'3. Outreach sent' },
+    { n:'~24',              lbl:'4. Phone captured', conv:DATA.conv.outreach_to_phone+'%', cls:'bad' },
+    { n:'~17',              lbl:'5. Handed over',    conv:'~71%',                          cls:'warn' },
+    { n:'~12',              lbl:'6. WA engaged',     conv:'-30%',                          cls:'warn' },
+    { n:inNeg,              lbl:'7. Negotiation',    conv:'↓ drop',                        cls:'bad' },
+    { n:closedAll,          lbl:'8. Deal closed' },
+    { n:'~'+Math.round(closedAll*(DATA.conv.sample_request_rate/100)), lbl:'9. Sample req.', conv:DATA.conv.sample_request_rate+'%', cls:'warn' },
+    { n:DATA.mtd_deals,     lbl:'10. Video posted',  conv:DATA.conv.sample_to_video+'%',   cls:'good' },
+    { n:'GMV',              lbl:'11. Revenue' },
+  ];
+  document.getElementById('funnel').innerHTML = stages.map(s =>
+    `<div class="stage">
+      <div class="n">${s.n}</div>
+      <div class="lbl">${s.lbl}</div>
+      ${s.conv ? `<div class="conv ${s.cls||''}">${s.conv}</div>` : ''}
+    </div>`).join('');
+}
+
+// ---------- PM Scorecard ----------
+function renderPMTable() {
+  const pms = {};
+  DATA.deals.forEach(d => {
+    const p = d.p || 'Unassigned';
+    if (!pms[p]) pms[p] = {total:0,NEGOTIATION:0,DONE:0,DEAL_CLOSED_NO_VIDEO:0,NOT_CONTACTED:0,CONTACTED_NO_REPLY:0,REJECTED_OR_PASS:0,gmvRisk:0};
+    pms[p].total++;
+    pms[p][d.s] = (pms[p][d.s]||0)+1;
+    if (d.s === 'NEGOTIATION') pms[p].gmvRisk += (d.g||0);
+  });
+  const rows = Object.entries(pms)
+    .filter(([n]) => n && n !== 'Khushi?' && n !== 'nan')
+    .sort((a,b) => b[1].total - a[1].total);
+  document.getElementById('pmCount').textContent = rows.length;
+  document.getElementById('pmTable').innerHTML = `
+    <thead><tr>
+      <th>PM</th><th class="num">Deals</th><th class="num">Nego</th>
+      <th class="num">GMV at risk</th><th class="num">Closed</th><th class="num">Cold</th><th class="num">Pass</th>
+    </tr></thead>
+    <tbody>${rows.map(([n,v]) =>
+      `<tr class="pm-row${F.pm===n?' selected':''}" data-pm="${n}">
+        <td><b>${n}</b></td>
+        <td class="num">${v.total}</td>
+        <td class="num">${v.NEGOTIATION||0}</td>
+        <td class="num" style="font-weight:600;color:${v.gmvRisk>50000?'var(--accent)':'inherit'};">${fmtMoney(v.gmvRisk)}</td>
+        <td class="num">${(v.DONE||0)+(v.DEAL_CLOSED_NO_VIDEO||0)}</td>
+        <td class="num">${(v.NOT_CONTACTED||0)+(v.CONTACTED_NO_REPLY||0)}</td>
+        <td class="num">${v.REJECTED_OR_PASS||0}</td>
+      </tr>`).join('')}
+    </tbody>`;
+  document.querySelectorAll('.pm-row').forEach(row => {
+    row.addEventListener('click', () => {
+      F.pm = (F.pm === row.dataset.pm) ? '' : row.dataset.pm;
+      document.getElementById('filterPM').value = F.pm;
+      renderPMTable();
+      renderDealsTable();
+      document.getElementById('allDealsSection').scrollIntoView({behavior:'smooth'});
+    });
+  });
+}
+
+// ---------- Action Queue ----------
+function renderActions() {
+  const counts = {};
+  DATA.next.forEach(n => { counts[n.n] = (counts[n.n]||0)+1; });
+  const playMap = {
+    'FOLLOW UP':                 'Replied but silent 3–5d. Nudge today.',
+    'PUSH TO CLOSE':             'High engagement — send forcing function.',
+    'MONITOR':                   'Active thread — stay close.',
+    'SEND COUNTER-OFFER':        'Creator named price; we owe a number.',
+    'BOOK A CALL':               'Creator agreed. Lock a time.',
+    'CHASE INTERNAL APPROVAL':   'Stuck on our side — ping manager.',
+    'RE-ENGAGE — NEW ANGLE':'Cold — try fresh hook.',
+    'WAIT / FOLLOW UP TOMORROW': 'Hold — re-engage tomorrow.',
+  };
+  const order = ['FOLLOW UP','PUSH TO CLOSE','SEND COUNTER-OFFER','BOOK A CALL','CHASE INTERNAL APPROVAL','MONITOR','RE-ENGAGE — NEW ANGLE','WAIT / FOLLOW UP TOMORROW'];
+  document.getElementById('actions').innerHTML = order.filter(k => counts[k]).map(k =>
+    `<div class="action${F.action===k?' active':''}" data-action="${k}">
+      <div class="label">${k}</div>
+      <div class="count">${counts[k]}</div>
+      <div class="play">${playMap[k]||''}</div>
+    </div>`).join('');
+  document.querySelectorAll('.action').forEach(card => {
+    card.addEventListener('click', () => {
+      F.action = (F.action === card.dataset.action) ? '' : card.dataset.action;
+      document.getElementById('filterAction').value = F.action;
+      renderActions();
+      renderDealsTable();
+      document.getElementById('allDealsSection').scrollIntoView({behavior:'smooth'});
+    });
+  });
+}
+
+// ---------- Stuck Deals ----------
+function renderStuckTable() {
+  const inNeg = DATA.deals.filter(d => d.s === 'NEGOTIATION');
+  document.getElementById('negGMVLabel').textContent = fmtMoney(inNeg.reduce((a,d) => a+(d.g||0), 0));
+  const nx = {};
+  DATA.next.forEach(n => { nx[n.h] = n.n; });
+  document.getElementById('stuckTable').innerHTML = `
+    <thead><tr>
+      <th>Creator</th><th>PM</th><th class="num">GMV</th>
+      <th>Next action</th><th>Last reply</th><th>Note</th>
+    </tr></thead>
+    <tbody>${[...inNeg].sort((a,b) => b.g-a.g).slice(0,12).map(d => {
+      const cls = d.l>=5?'urgent-row':d.l>=3?'warn-row':'';
+      return `<tr class="${cls}">
+        <td><a href="https://www.tiktok.com/@${d.h}" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:600;">@${d.h}</a></td>
+        <td>${d.p||'—'}</td>
+        <td class="num" style="font-weight:600;">${fmtMoney(d.g)}</td>
+        <td>${nxtBadge(nx[d.h])}</td>
+        <td>${staleBadge(d.l)}</td>
+        <td style="color:var(--muted);font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(d.c||'').replace(/"/g,"'")}">${d.c?d.c.substring(0,55)+(d.c.length>55?'…':''):'—'}</td>
+      </tr>`;
+    }).join('')}</tbody>`;
+}
+
+// ---------- All Deals Table ----------
+function filteredDeals() {
+  return ENRICHED
+    .filter(d => {
+      if (F.pm && d.p !== F.pm) return false;
+      if (F.stage && d.s !== F.stage) return false;
+      if (F.action && d.nx !== F.action) return false;
+      if (F.search) {
+        const q = F.search.toLowerCase();
+        if (!d.h.toLowerCase().includes(q) && !(d.p||'').toLowerCase().includes(q)) return false;
+      }
+      return true;
+    })
+    .sort((a,b) => {
+      const va=a[F.sortField], vb=b[F.sortField];
+      if (va==null && vb==null) return 0;
+      if (va==null) return 1; if (vb==null) return -1;
+      return F.sortDir * (typeof va==='string' ? va.localeCompare(vb) : va-vb);
+    });
+}
+
+function thCls(f) {
+  if (F.sortField!==f) return 'sortable';
+  return F.sortDir===1 ? 'sortable sorted asc' : 'sortable sorted';
+}
+
+function renderDealsTable() {
+  const results = filteredDeals();
+  document.getElementById('resultCount').textContent = results.length+' deal'+(results.length!==1?'s':'');
+  document.getElementById('totalDealsLabel').textContent = ENRICHED.length+' total · '+results.length+' shown';
+  document.getElementById('dealTable').innerHTML = `
+    <thead><tr>
+      <th class="${thCls('h')}" data-sort="h">Creator</th>
+      <th class="${thCls('p')}" data-sort="p">PM</th>
+      <th>Stage</th>
+      <th class="${thCls('g')} num" data-sort="g">GMV</th>
+      <th>Next action</th>
+      <th class="${thCls('l')} num" data-sort="l">Last reply</th>
+      <th class="${thCls('o')} num" data-sort="o">Out/In</th>
+      <th>Note</th>
+    </tr></thead>
+    <tbody>${results.map(d => {
+      const cls = d.l>=5?'urgent-row':d.l>=3?'warn-row':'';
+      return `<tr class="${cls}">
+        <td><a href="https://www.tiktok.com/@${d.h}" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:600;">@${d.h}</a></td>
+        <td><span style="font-size:11px;background:var(--card-alt);padding:2px 7px;border-radius:4px;border:1px solid var(--line);">${d.p||'—'}</span></td>
+        <td>${stageBadge(d.s)}</td>
+        <td class="num" style="font-weight:600;">${fmtMoney(d.g)}</td>
+        <td>${nxtBadge(d.nx)}</td>
+        <td class="num">${staleBadge(d.l)}</td>
+        <td class="num" style="color:var(--muted);">${d.o}/${d.i}</td>
+        <td style="font-size:11px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(d.c||'').replace(/"/g,"'")}">${d.c?d.c.substring(0,50)+(d.c.length>50?'…':''):'—'}</td>
+      </tr>`;
+    }).join('')}</tbody>`;
+  document.querySelectorAll('#dealTable th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const f = th.dataset.sort;
+      if (F.sortField===f) { F.sortDir*=-1; } else { F.sortField=f; F.sortDir=-1; }
+      renderDealsTable();
+    });
+  });
+}
+
+// ---------- PM filter dropdown ----------
+function populatePMFilter() {
+  const sel = document.getElementById('filterPM');
+  while (sel.options.length>1) sel.remove(1);
+  [...new Set(DATA.deals.map(d=>d.p).filter(p=>p&&p!=='nan'&&p!=='Khushi?'))].sort()
+    .forEach(pm => { const o=document.createElement('option'); o.value=pm; o.textContent=pm; sel.appendChild(o); });
+  sel.value = F.pm;
+}
+
+// ---------- Channel chart ----------
+function renderChannel() {
+  if (chartInst) { chartInst.destroy(); chartInst=null; }
+  chartInst = new Chart(document.getElementById('channelChart'), {
+    type:'doughnut',
+    data:{
+      labels:Object.keys(DATA.channel),
+      datasets:[{data:Object.values(DATA.channel),backgroundColor:['#1D4ED8','#F59E0B','#10B981','#94A3B8'],borderWidth:0}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.parsed}%`}}
+      }
+    }
+  });
+}
+
+// ---------- GMV × Stage matrix ----------
+function renderMatrix() {
+  const bands=['100k+','50-100k','25-50k','5-25k','3.5-5k','<3.5k'];
+  const stages=['NEGOTIATION','DEAL_CLOSED_NO_VIDEO','DONE','NOT_CONTACTED','CONTACTED_NO_REPLY','REJECTED_OR_PASS'];
+  const mx={};
+  bands.forEach(b=>{mx[b]={};stages.forEach(s=>mx[b][s]=0);});
+  DATA.deals.forEach(d=>{if(mx[d.b]) mx[d.b][d.s]=(mx[d.b][d.s]||0)+1;});
+  const maxv=Math.max(...bands.flatMap(b=>stages.map(s=>mx[b][s])));
+  const cell=v=>{
+    if(!v) return '<td style="color:#CBD5E1">·</td>';
+    const i=Math.min(1,v/Math.max(maxv,12));
+    return `<td style="background:rgba(185,28,28,${0.08+0.45*i});font-weight:600;">${v}</td>`;
+  };
+  const lbl={NEGOTIATION:'Nego',DEAL_CLOSED_NO_VIDEO:'Closed·no vid',DONE:'Done',
+    NOT_CONTACTED:'Not contacted',CONTACTED_NO_REPLY:'No reply',REJECTED_OR_PASS:'Pass'};
+  document.getElementById('matrix').innerHTML =
+    `<thead><tr><th>GMV band</th>${stages.map(s=>`<th>${lbl[s]}</th>`).join('')}<th>Total</th></tr></thead>
+    <tbody>${bands.map(b=>{
+      const tot=stages.reduce((a,s)=>a+mx[b][s],0);
+      return `<tr><th>${b}</th>${stages.map(s=>cell(mx[b][s])).join('')}<td style="font-weight:600;">${tot||'—'}</td></tr>`;
+    }).join('')}</tbody>`;
+}
+
+function renderLastUpdated() {
+  document.getElementById('lastUpdated').textContent =
+    'Updated '+new Date().toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'});
+}
+
+// ---------- Filter event bindings ----------
+function bindFilters() {
+  document.getElementById('filterPM').addEventListener('change', e => {
+    F.pm=e.target.value; renderPMTable(); renderDealsTable();
+  });
+  document.getElementById('filterStage').addEventListener('change', e => {
+    F.stage=e.target.value; renderDealsTable();
+  });
+  document.getElementById('filterAction').addEventListener('change', e => {
+    F.action=e.target.value; renderActions(); renderDealsTable();
+  });
+  let t;
+  document.getElementById('searchInput').addEventListener('input', e => {
+    clearTimeout(t); t=setTimeout(()=>{F.search=e.target.value;renderDealsTable();},200);
+  });
+  document.getElementById('clearFilters').addEventListener('click', () => {
+    F.pm=''; F.stage=''; F.action=''; F.search='';
+    document.getElementById('filterPM').value='';
+    document.getElementById('filterStage').value='';
+    document.getElementById('filterAction').value='';
+    document.getElementById('searchInput').value='';
+    renderPMTable(); renderActions(); renderDealsTable();
+  });
+}
+
+// ---------- Init ----------
+async function init() {
+  await loadData();
+  if (!DATA) return;
+  buildEnriched();
+  populatePMFilter();
+  renderKPIs();
+  renderFunnel();
+  renderPMTable();
+  renderActions();
+  renderStuckTable();
+  renderChannel();
+  renderDealsTable();
+  renderMatrix();
+  renderLastUpdated();
+}
+
+bindFilters();
+document.getElementById('refreshBtn').addEventListener('click', init);
+init();
+setInterval(init, AUTO_REFRESH_MS);
+</script>
+</body>
+</html>
