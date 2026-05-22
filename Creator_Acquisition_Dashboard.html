@@ -605,14 +605,18 @@ function renderNegoDepth(){
 function renderKPIs() {
   const d=DATA.deals, inNeg=d.filter(x=>x.s==='NEGOTIATION'), closed=d.filter(x=>x.s==='DONE'||x.s==='DEAL_CLOSED_NO_VIDEO');
   const gmvRisk=inNeg.reduce((a,x)=>a+(x.g||0),0);
+  const wa=24, contacted=DATA.mtd_contact;
+  const waRate=Math.round(wa/contacted*100);
+  const dealRate=+(closed.length/contacted*100).toFixed(1);
+  const vidRate=+(DATA.mtd_deals/contacted*100).toFixed(1);
   const kpis=[
-    {l:'Target universe',    v:fmt(DATA.universe),              s:'Shortlisted creators',         c:''},
-    {l:'MTD handed over',    v:DATA.mtd_contact,                s:`of ${DATA.monthly_target} target`, c: DATA.mtd_contact/DATA.monthly_target>=0.7?'green':'red'},
-    {l:'Outreach → WA Rate',  v:Math.round(24/DATA.mtd_contact*100)+'%', s:'24 WA ÷ '+DATA.mtd_contact+' contacted = '+(24/DATA.mtd_contact*100).toFixed(1)+'%', c:'red'},
-    {l:'Active pipeline',    v:d.length,                        s:inNeg.length+' in negotiation', c:''},
-    {l:'GMV at risk',        v:fmtM(gmvRisk),                   s:inNeg.length+' stuck deals',    c:'blue'},
-    {l:'Closed this month',  v:closed.length,                   s:'Done + deal-no-video',          c:'green'},
-    {l:'Videos posted MTD',  v:DATA.mtd_deals,                  s:'vs '+DATA.last_month+' last mo',c:DATA.mtd_deals>=DATA.last_month?'green':'amber'},
+    {l:'MTD handed over',       v:contacted,              s:`of ${DATA.monthly_target} target · ${Math.round(contacted/DATA.monthly_target*100)}% done`, c:contacted/DATA.monthly_target>=0.7?'green':'red'},
+    {l:'WA Capture (gate 1)',   v:waRate+'%',             s:`${wa} WA ÷ ${contacted} contacted · first conversion gate`,  c:'amber'},
+    {l:'Contact → Deal (gate 2)',v:dealRate+'%',           s:`${closed.length} deals ÷ ${contacted} contacted · acquisition close rate`, c:dealRate>=5?'amber':'red'},
+    {l:'Contact → Video (end)', v:vidRate+'%',            s:`${DATA.mtd_deals} videos ÷ ${contacted} contacted · full-funnel output`, c:vidRate>=10?'amber':'red'},
+    {l:'GMV at risk',           v:fmtM(gmvRisk),          s:inNeg.length+' deals stuck in negotiation',    c:'blue'},
+    {l:'Deals closed MTD',      v:closed.length,          s:'Done + deal-no-video',                        c:'green'},
+    {l:'Videos posted MTD',     v:DATA.mtd_deals,         s:'vs '+DATA.last_month+' last mo',              c:DATA.mtd_deals>=DATA.last_month?'green':'amber'},
   ];
   document.getElementById('kpis').innerHTML=kpis.map(k=>`<div class="kpi ${k.c}"><div class="lbl">${k.l}</div><div class="val">${k.v}</div><div class="sub">${k.s}</div></div>`).join('');
 }
@@ -630,11 +634,11 @@ function renderFunnel() {
     {n:fmt(DATA.universe),  l:'1. Sourced',         fc:'',     cv:''},
     {n:'~1,800',            l:'2. Acq. bucket',      fc:'warn', cv:'↓ 67% selected'},
     {n:contacted,           l:'3. Handed over',      fc:'warn', cv:'↓ 8% of bucket'},
-    {n:wa,                  l:'4. WA captured',      fc:'bad',  cv:'↓ '+waRate+'% ←KEY'},
+    {n:wa,                  l:'4. WA captured',      fc:'bad',  cv:'gate1: '+waRate+'%'},
     {n:'~'+waEng,           l:'5. WA engaged',       fc:'warn', cv:'↓ '+(100-DATA.conv.whatsapp_drop)+'% retained'},
     {n:'~'+negoSt,          l:'6. Nego start',       fc:'bad',  cv:'↓ ~71%'},
     {n:inNeg,               l:'7. In negotiation',   fc:'bad',  cv:'↑ '+inNeg+' stuck'},
-    {n:cl,                  l:'8. Deal closed',      fc:cl>0?'warn':'bad', cv:'↓ '+negoClosedRate+'% close rate'},
+    {n:cl,                  l:'8. Deal closed',      fc:cl>0?'warn':'bad', cv:'gate2: '+Math.round(cl/contacted*100)+'% of 143'},
     {n:'~'+Math.round(cl*(DATA.conv.sample_request_rate/100)),l:'9. Sample shipped',fc:'warn',cv:'↓ '+DATA.conv.sample_request_rate+'%'},
     {n:DATA.mtd_deals,      l:'10. Video posted',    fc:'good', cv:'↓ '+DATA.conv.sample_to_video+'%'},
     {n:'GMV',               l:'11. Revenue',         fc:'good', cv:'✓'},
@@ -689,7 +693,27 @@ function renderFunnelDrops() {
   }).join('');
 
   document.getElementById('funnelDropRows').innerHTML=hdr+rowsHtml;
-  document.getElementById('convMathBox').innerHTML=`<h4>How is ${waRate}% calculated?</h4><p>${wa} WA/phone numbers collected ÷ ${contacted} creators the Relations team reached out to = ${(wa/contacted*100).toFixed(1)}% → rounded to <b>${waRate}%</b>. This is the single largest drop in the funnel — ${contacted-wa} of ${contacted} leads are lost at this one gate. The 43% ghost rate and 17% upfront-only demand together account for ${Math.round((43+17)/100*(contacted-wa))} of those ${contacted-wa} lost leads.</p>`;
+  const dealRate2=+(cl/contacted*100).toFixed(1);
+  const vidRate2=+(vidN/contacted*100).toFixed(1);
+  document.getElementById('convMathBox').innerHTML=`<h4>Conversion chain — all three rates out of ${contacted} contacted</h4>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:10px 0;">
+    <div style="background:rgba(0,0,0,0.05);border-radius:8px;padding:10px 12px;">
+      <div style="font-size:10px;color:var(--bad);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Gate 1 · WA Capture</div>
+      <div style="font-size:22px;font-weight:900;margin:4px 0;">${waRate}%</div>
+      <div style="font-size:11px;">${wa} WA numbers ÷ ${contacted} contacted = ${(wa/contacted*100).toFixed(1)}%<br>83% dropped before sharing contact</div>
+    </div>
+    <div style="background:rgba(0,0,0,0.05);border-radius:8px;padding:10px 12px;">
+      <div style="font-size:10px;color:var(--warn);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Gate 2 · Acquisition Close</div>
+      <div style="font-size:22px;font-weight:900;margin:4px 0;">${dealRate2}%</div>
+      <div style="font-size:11px;">${cl} deals closed ÷ ${contacted} contacted = ${dealRate2}%<br>Of 24 who shared WA, only ${cl} have closed a deal so far</div>
+    </div>
+    <div style="background:rgba(0,0,0,0.05);border-radius:8px;padding:10px 12px;">
+      <div style="font-size:10px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">End-to-End · Video Output</div>
+      <div style="font-size:22px;font-weight:900;margin:4px 0;">${vidRate2}%</div>
+      <div style="font-size:11px;">${vidN} videos MTD ÷ ${contacted} contacted = ${vidRate2}%<br>Note: videos include prior months' pipeline, not just this month's ${contacted}</div>
+    </div>
+  </div>
+  <p style="margin-top:6px;">The "17%" you've been quoting is Gate 1 (WA capture), not the full acquisition conversion. Gate 2 (contact-to-close) is the true acquisition team metric: <b>${dealRate2}% of outreach becomes a deal</b>. The ${vidN} videos MTD span the full historical pipeline so ${vidRate2}% is directional, not exact.</p>`;
 }
 
 function renderPMTable() {
