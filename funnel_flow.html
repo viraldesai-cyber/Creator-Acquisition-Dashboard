@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Creator Acquisition Flow — Mosaic Wellness</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif;
+  background:#F8FAFC;
+  color:#0F172A;
+  padding:48px 32px;
+  max-width:780px;
+  margin:0 auto;
+}
+
+/* ── HEADER ── */
+.header{text-align:center;margin-bottom:48px;}
+.header .brand{font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;}
+.header h1{font-size:26px;font-weight:800;color:#0F172A;letter-spacing:-0.02em;}
+.header p{font-size:14px;color:#64748B;margin-top:6px;}
+
+/* ── LANE ── */
+.lane{border-radius:20px;padding:28px 32px;margin-bottom:12px;position:relative;}
+.lane-acq{background:#EFF6FF;border:1.5px solid #BFDBFE;}
+.lane-rel{background:#F0FDF4;border:1.5px solid #BBF7D0;}
+.lane-label{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;
+  padding:4px 12px;border-radius:999px;display:inline-block;margin-bottom:20px;
+}
+.lane-acq .lane-label{background:#DBEAFE;color:#1E40AF;}
+.lane-rel .lane-label{background:#DCFCE7;color:#15803D;}
+
+/* ── STEPS ── */
+.steps{display:flex;flex-direction:column;gap:0;}
+.step-row{display:flex;align-items:flex-start;gap:0;}
+
+/* card */
+.card{
+  display:flex;align-items:flex-start;gap:14px;
+  background:#fff;border-radius:14px;padding:16px 18px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.07);
+  flex:1;
+}
+.card-icon{font-size:22px;flex-shrink:0;margin-top:1px;}
+.card-body{}
+.card-title{font-size:14px;font-weight:700;color:#0F172A;}
+.card-sub{font-size:12px;color:#64748B;margin-top:3px;line-height:1.5;}
+.card-stat{
+  display:inline-block;margin-top:8px;
+  font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;
+}
+.stat-blue{background:#DBEAFE;color:#1E40AF;}
+.stat-green{background:#DCFCE7;color:#15803D;}
+.stat-red{background:#FEE2E2;color:#B91C1C;}
+.stat-amber{background:#FEF3C7;color:#92400E;}
+
+/* connector */
+.connector{
+  display:flex;flex-direction:column;align-items:center;
+  width:56px;flex-shrink:0;padding-top:28px;
+}
+.connector-line{width:2px;background:#CBD5E1;flex:1;min-height:24px;}
+.connector-arrow{color:#94A3B8;font-size:14px;margin-top:-4px;}
+
+/* dropout */
+.dropout-row{display:flex;align-items:center;gap:0;margin:0;}
+.dropout-spacer{width:56px;flex-shrink:0;}
+.dropout-line{width:40px;height:2px;background:#FECACA;margin-right:0;flex-shrink:0;}
+.dropout-box{
+  background:#FFF1F2;border:1.5px solid #FECACA;border-radius:10px;
+  padding:8px 12px;
+  font-size:11px;color:#B91C1C;font-weight:600;line-height:1.4;
+  max-width:200px;
+}
+
+/* ── HANDOFF ── */
+.handoff{
+  text-align:center;padding:16px;margin:4px 0;
+  display:flex;align-items:center;gap:12px;justify-content:center;
+}
+.handoff-line{flex:1;height:2px;background:linear-gradient(90deg,#BFDBFE,#BBF7D0);}
+.handoff-badge{
+  background:#0F172A;color:#fff;border-radius:12px;padding:8px 18px;
+  font-size:12px;font-weight:700;white-space:nowrap;
+}
+
+/* ── SUMMARY ── */
+.summary{
+  margin-top:32px;
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;
+}
+.sum-card{
+  background:#fff;border-radius:14px;padding:18px 16px;text-align:center;
+  box-shadow:0 1px 3px rgba(0,0,0,0.07);border-top:4px solid;
+}
+.sum-card.red{border-color:#EF4444;}
+.sum-card.amber{border-color:#F59E0B;}
+.sum-card.green{border-color:#10B981;}
+.sum-card .s-val{font-size:28px;font-weight:900;letter-spacing:-0.02em;margin-bottom:4px;}
+.sum-card.red .s-val{color:#B91C1C;}
+.sum-card.amber .s-val{color:#92400E;}
+.sum-card.green .s-val{color:#15803D;}
+.sum-card .s-lbl{font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.06em;}
+.sum-card .s-sub{font-size:11px;color:#94A3B8;margin-top:4px;}
+
+.footer{text-align:center;margin-top:32px;font-size:11px;color:#94A3B8;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">Mosaic Wellness · MagAshwa</div>
+  <h1>Creator Acquisition Flow</h1>
+  <p>How a creator goes from discovered → deal closed → video posted</p>
+</div>
+
+
+<!-- ACQUISITION TEAM LANE -->
+<div class="lane lane-acq">
+  <span class="lane-label">Acquisition Team</span>
+
+  <div class="steps">
+
+    <div class="step-row">
+      <div class="card">
+        <div class="card-icon">🔍</div>
+        <div class="card-body">
+          <div class="card-title">Source & Discover</div>
+          <div class="card-sub">Browse TikTok Shop for creators with proven GMV history and relevant niche</div>
+          <span class="card-stat stat-blue">~2,671 shortlisted</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector"><div class="connector-line"></div><div class="connector-arrow">↓</div></div>
+
+    <div class="step-row">
+      <div class="card">
+        <div class="card-icon">✅</div>
+        <div class="card-body">
+          <div class="card-title">Qualify & Shortlist</div>
+          <div class="card-sub">Filter by niche fit, follower count, GMV band, and content style</div>
+          <span class="card-stat stat-blue">~1,800 pass the filter</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector"><div class="connector-line"></div><div class="connector-arrow">↓</div></div>
+
+    <div class="step-row">
+      <div class="card">
+        <div class="card-icon">📤</div>
+        <div class="card-body">
+          <div class="card-title">Hand Over to Relations Team</div>
+          <div class="card-sub">Acquisition shares a daily batch of creator profiles with the Relations team to reach out</div>
+          <span class="card-stat stat-amber">Target: 300 / month &nbsp;·&nbsp; This month: 143 so far</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- HANDOFF -->
+<div class="handoff">
+  <div class="handoff-line"></div>
+  <div class="handoff-badge">🤝 Daily hand-off</div>
+  <div class="handoff-line"></div>
+</div>
+
+
+<!-- RELATIONS TEAM LANE -->
+<div class="lane lane-rel">
+  <span class="lane-label">Relations Team</span>
+
+  <div class="steps">
+
+    <div class="step-row">
+      <div class="card">
+        <div class="card-icon">💬</div>
+        <div class="card-body">
+          <div class="card-title">First Outreach</div>
+          <div class="card-sub">PM messages the creator via Email, TikTok DM, or Affiliate Chat with a collaboration pitch</div>
+          <span class="card-stat stat-green">143 creators messaged this month</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dropout-row">
+      <div class="dropout-spacer"></div>
+      <div style="width:2px;height:24px;background:#CBD5E1;margin-right:0;"></div>
+    </div>
+    <div class="dropout-row" style="margin-bottom:0;">
+      <div style="width:56px;flex-shrink:0;display:flex;justify-content:center;">
+        <div style="width:2px;background:#CBD5E1;"></div>
+      </div>
+      <div style="flex:1;position:relative;">
+        <div style="display:flex;align-items:center;gap:0;margin-left:-2px;">
+          <div style="width:40px;height:2px;background:#FECACA;"></div>
+          <div class="dropout-box">❌ 43% ghost — creator never replies despite follow-ups</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;"><div style="width:56px;flex-shrink:0;display:flex;justify-content:center;"><div style="width:2px;height:12px;background:#CBD5E1;"></div></div></div>
+    <div style="display:flex;align-items:center;padding-left:45px;"><span style="color:#94A3B8;font-size:14px;">↓</span></div>
+
+    <div class="step-row" style="margin-top:4px;">
+      <div class="card">
+        <div class="card-icon">📱</div>
+        <div class="card-body">
+          <div class="card-title">Creator Shares WhatsApp / Phone</div>
+          <div class="card-sub">Creator agrees to continue the conversation and shares their contact details</div>
+          <span class="card-stat stat-red">Gate 1 — 17% convert &nbsp;·&nbsp; 24 of 143</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector"><div class="connector-line"></div><div class="connector-arrow">↓</div></div>
+
+    <div class="step-row">
+      <div class="card">
+        <div class="card-icon">🤝</div>
+        <div class="card-body">
+          <div class="card-title">Negotiate Deal Terms</div>
+          <div class="card-sub">PM proposes a retainer + commission structure. Creator may counter with their own rates. Multiple rounds of back and forth.</div>
+          <span class="card-stat stat-red">⚠️ 95 deals stuck here right now — avg 13 days</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector"><div class="connector-line"></div><div class="connector-arrow">↓</div></div>
+
+    <div class="step-row">
+      <div class="card">
+        <div class="card-icon">✍️</div>
+        <div class="card-body">
+          <div class="card-title">Deal Closed</div>
+          <div class="card-sub">Terms agreed. Creator confirms and signs off on the collaboration structure.</div>
+          <span class="card-stat stat-red">Gate 2 — 5.6% of outreach &nbsp;·&nbsp; 8 deals closed this month</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector"><div class="connector-line"></div><div class="connector-arrow">↓</div></div>
+
+    <div class="step-row">
+      <div class="card">
+        <div class="card-icon">📦</div>
+        <div class="card-body">
+          <div class="card-title">Sample Shipped & Delivered</div>
+          <div class="card-sub">MagAshwa product sent to creator's address. Creator receives it within ~5 days.</div>
+          <span class="card-stat stat-amber">~5 days shipping TAT</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector"><div class="connector-line"></div><div class="connector-arrow">↓</div></div>
+
+    <div class="step-row">
+      <div class="card">
+        <div class="card-icon">🎬</div>
+        <div class="card-body">
+          <div class="card-title">Video Posted on TikTok</div>
+          <div class="card-sub">Creator films and posts a TikTok Shop video featuring the product with an affiliate link</div>
+          <span class="card-stat stat-green">24 videos posted this month</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector"><div class="connector-line"></div><div class="connector-arrow">↓</div></div>
+
+    <div class="step-row">
+      <div class="card">
+        <div class="card-icon">💰</div>
+        <div class="card-body">
+          <div class="card-title">Sales & GMV Generated</div>
+          <div class="card-sub">Viewers purchase through the creator's TikTok Shop link. Creator earns commission, brand earns revenue.</div>
+          <span class="card-stat stat-green">Revenue tracked via TikTok affiliate</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- SUMMARY NUMBERS -->
+<div class="summary">
+  <div class="sum-card red">
+    <div class="s-val">17%</div>
+    <div class="s-lbl">WA Capture Rate</div>
+    <div class="s-sub">24 of 143 messaged shared contact</div>
+  </div>
+  <div class="sum-card amber">
+    <div class="s-val">5.6%</div>
+    <div class="s-lbl">Contact → Deal Rate</div>
+    <div class="s-sub">8 deals closed from 143 outreach</div>
+  </div>
+  <div class="sum-card green">
+    <div class="s-val">24</div>
+    <div class="s-lbl">Videos Posted MTD</div>
+    <div class="s-sub">vs 35 last month · target: grow</div>
+  </div>
+</div>
+
+<div class="footer">Mosaic Wellness · MagAshwa Creator Acquisition · May 2026</div>
+
+</body>
+</html>
