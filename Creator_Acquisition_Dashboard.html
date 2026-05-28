@@ -224,6 +224,23 @@ footer{text-align:center;font-size:11px;color:var(--muted);padding:20px;border-t
 tr.row-done td{opacity:0.4;}
 .prio-action{font-size:12px;color:var(--ink-soft);line-height:1.5;}
 .prio-impact{font-size:10px;color:var(--muted);margin-top:3px;}
+
+/* ── SWIMLANE ── */
+.stream-col{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;}
+.stream-col-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:8px 12px;border-radius:8px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.stream-col-hdr.process{background:#EFF6FF;color:#1D4ED8;}
+.stream-col-hdr.dashboard{background:#ECFDF5;color:#15803D;}
+.area-group{margin-bottom:16px;}
+.area-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--line);}
+.swim-item{display:flex;align-items:flex-start;gap:9px;padding:8px 10px;border-radius:8px;margin-bottom:5px;background:var(--card-alt);transition:background 0.1s;}
+.swim-item:hover{background:var(--accent-bg);}
+.swim-item.done{opacity:0.38;}
+.swim-dot{font-size:15px;flex-shrink:0;line-height:1.35;cursor:pointer;user-select:none;transition:transform 0.1s;}
+.swim-dot:hover{transform:scale(1.25);}
+.swim-lever{font-size:12px;font-weight:600;color:var(--ink);line-height:1.4;}
+.swim-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;align-items:center;}
+.pbar-stream{height:6px;background:var(--card-alt);border-radius:999px;overflow:hidden;margin-top:6px;}
+.pbar-stream-fill{height:100%;border-radius:999px;transition:width 0.5s;}
 </style>
 </head>
 <body>
@@ -512,11 +529,18 @@ tr.row-done td{opacity:0.4;}
 <div class="page" id="page-priorities">
 
   <section>
-    <div class="sh"><h2>Action Plan · 12 priorities</h2><span class="hint">Click any field to edit · saves automatically in your browser</span></div>
-    <div class="grid kpis-4" id="priorityProgress"></div>
+    <div class="sh"><h2>Roadmap · 18 initiatives across 3 tracks</h2><span class="hint">Process · Dashboard · Scale · status saves automatically</span></div>
+    <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:12px;" id="streamProgress"></div>
   </section>
 
   <section>
+    <div class="sh"><h2>Swimlane View</h2><span class="hint">Click ⬜ dot to cycle status · Not Started → In Progress → Done → Blocked</span></div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px;" id="swimlane"></div>
+  </section>
+
+  <section>
+    <div class="sh"><h2>Full Action Table</h2><span class="hint">Click any field to edit · saves automatically in your browser</span></div>
+    <div class="grid kpis-4" id="priorityProgress" style="margin-bottom:12px;"></div>
     <div class="panel" style="padding:0;overflow:hidden;">
       <div style="overflow-x:auto;">
         <table id="priorityTable"></table>
@@ -582,62 +606,67 @@ const OWNER_OPTS=[
   'Relations + Acquisition + Tech',
 ];
 const PRIORITY_DATA=[
-  {id:1, p:'P0', lever:'App & Channel Audit',        cat:'Foundation',   def_owner:'Tech & Ops',                    effort:'Low',
-   action:'Map every tool in use — Email, WhatsApp, Euka, Cruva — what data each captures, who uses it, and where it lives.',
-   note:'Goal: <b>single source of truth</b> across all outreach channels before building anything on top. Without this, every dashboard and report will have gaps.',
-   impact:'One place to see all creator conversations across all 4 channels'},
-
-  {id:2, p:'P0', lever:'Unified Outreach Dashboard', cat:'Dashboarding', def_owner:'Relations + Tech',              effort:'Medium',
-   action:'Build one view showing all 4 channels — volume sent, reply rate, WA captured — per PM, per channel, per week.',
-   note:'',
-   impact:'Full cross-channel visibility in one place — no more switching between apps'},
-
-  {id:3, p:'P0', lever:'WhatsApp Data Capture',      cat:'Dashboarding', def_owner:'Relations Team',                effort:'Medium',
-   action:'Log all WA conversations into a central tracker — creator handle, PM name, date contacted, replied Y/N, and outcome.',
-   note:'',
-   impact:'Negotiation TAT and deal outcomes become trackable for the first time'},
-
-  {id:4, p:'P1', lever:'Euka & Cruva Integration',   cat:'Dashboarding', def_owner:'Tech & Ops',                    effort:'High',
-   action:'Pull outreach activity from Euka and Cruva into the central dashboard — messages sent, replies received, current status per creator.',
-   note:'',
-   impact:'Eliminates manual reporting · outreach metrics auto-populate'},
-
-  {id:5, p:'P1', lever:'Channel Standardisation',    cat:'Process',      def_owner:'Relations + Acquisition + Tech',effort:'Low',
-   action:'Right now each channel (Email, WhatsApp, Euka, Cruva) records different information. Standardisation means agreeing on a common set of fields for every creator conversation — who contacted them, when, what they replied, and what happened next — so you can compare all channels on the same scale.',
-   note:'',
-   impact:'Apples-to-apples comparison across all 4 channels becomes possible'},
-
-  {id:6, p:'P1', lever:'Upstream Quality Filter',    cat:'Acquisition',  def_owner:'Acquisition Team',              effort:'Low',
-   action:'Add a pre-qualification checklist before handing a creator to the Relations team — niche fit, BOF check, affiliate account active, content recency.',
-   note:'',
-   impact:'WA capture rate 17% → 30%+ · Relations team stops wasting time on unqualifiable leads'},
-
-  {id:7, p:'P1', lever:'Negotiation SLA',            cat:'Process',      def_owner:'Relations Team',                effort:'Low',
-   action:'Set a 48-hour counter-offer SLA — if no reply from creator in 48h, PM must escalate or send a forcing function ("offer valid until Friday").',
-   note:'',
-   impact:'Unlock 30–40 stuck deals · avg negotiation TAT: 13d → under 8d'},
-
-  {id:8, p:'P2', lever:'Channel Mix Shift',          cat:'Outreach',     def_owner:'Relations Team',                effort:'Low',
-   action:'Shift volume from Affiliate Chat (7% WA capture rate) to Email outreach (25% WA capture rate).',
-   note:'',
-   impact:'WA capture rate +5–8% with the same headcount'},
-
-  {id:9, p:'P2', lever:'Message Hook Template',      cat:'Outreach',     def_owner:'Relations Team',                effort:'Medium',
+  // PROCESS · ACQUISITION
+  {id:1, stream:'Process', area:'Acquisition', p:'P0', lever:'Outreach SOP per channel', def_owner:'Relations + Acquisition', effort:'Low',
+   action:'Create a 1-page SOP for each channel (Email, TT DM, WhatsApp, Affiliate Chat) — what message to send, when to follow up, when to archive.',
+   note:'', impact:'Ghost rate falls, PM consistency improves — same playbook for every channel'},
+  {id:2, stream:'Process', area:'Acquisition', p:'P0', lever:'Upstream Quality Filter', def_owner:'Acquisition Team', effort:'Low',
+   action:'Add a pre-qualification checklist before handing a creator to Relations — niche fit, BOF check, affiliate account active, content recency.',
+   note:'', impact:'WA capture rate 17% → 30%+ · Relations team stops wasting time on unqualifiable leads'},
+  {id:3, stream:'Process', area:'Acquisition', p:'P1', lever:'Negotiation SLA (48h)', def_owner:'Relations Team', effort:'Low',
+   action:'Set a 48-hour counter-offer SLA — if no reply in 48h, PM must escalate or send forcing function ("offer valid until Friday").',
+   note:'', impact:'Unlock 30–40 stuck deals · avg negotiation TAT: 13d → under 8d'},
+  {id:4, stream:'Process', area:'Acquisition', p:'P1', lever:'Message Hook Template', def_owner:'Relations Team', effort:'Medium',
    action:'Write one tested opening message template per channel. A/B test two versions to find what reduces the ghost rate.',
-   note:'',
-   impact:'Ghost rate 43% → ~25%'},
-
-  {id:10,p:'P2', lever:'Archive Dead Deals',         cat:'Process',      def_owner:'Relations Team',                effort:'Low',
-   action:'Every week, archive all deals that have been silent for 7+ days. Stop carrying dead weight in the active pipeline.',
-   note:'',
-   impact:'Cleaner pipeline · accurate close rate visibility'},
-
-  {id:11,p:'P3', lever:'Volume Scale',               cat:'Acquisition',  def_owner:'Acquisition Team',              effort:'Medium',
+   note:'', impact:'Ghost rate 43% → ~25%'},
+  // PROCESS · RETENTION
+  {id:5, stream:'Process', area:'Retention', p:'P1', lever:'Creator Check-in Cadence', def_owner:'Relations Team', effort:'Low',
+   action:'Set a monthly check-in schedule for all active creators — confirm content is live, ask about next video, address blockers.',
+   note:'', impact:'Reduces dormancy · keeps pipeline active without new acquisition cost'},
+  {id:6, stream:'Process', area:'Retention', p:'P1', lever:'Deal Renewal SOP', def_owner:'Relations Team', effort:'Medium',
+   action:'Before a deal expires, auto-trigger a renewal conversation 30 days out. Have a standard renewal offer ready (bump commission % or volume bonus).',
+   note:'', impact:'Retention improves · deals compound instead of churning'},
+  // PROCESS · REACTIVATION
+  {id:7, stream:'Process', area:'Reactivation', p:'P2', lever:'Identify Dormant Creators', def_owner:'Relations + Acquisition', effort:'Low',
+   action:'Pull a list of creators who posted 1+ video but went quiet (no new video in 45+ days). Tag them as "Dormant" in the dashboard.',
+   note:'', impact:'Turns a hidden asset into a visible pipeline — reactivation is cheaper than new acquisition'},
+  {id:8, stream:'Process', area:'Reactivation', p:'P2', lever:'Reactivation Offer Structure', def_owner:'Relations Team', effort:'Medium',
+   action:'Design a specific re-engagement offer for dormant creators — e.g. a one-time bonus if they post in the next 2 weeks.',
+   note:'', impact:'Reactivates creators at fraction of new-acquisition cost'},
+  // PROCESS · REACQUISITION
+  {id:9, stream:'Process', area:'Reacquisition', p:'P2', lever:'Archive-to-Revisit Cadence', def_owner:'Relations + Acquisition', effort:'Low',
+   action:'Deals that went cold get auto-reviewed every 60 days. If creator has new content or GMV, re-pitch with an updated offer.',
+   note:'', impact:'Turns "dead" pipeline into a warm backlog'},
+  {id:10,stream:'Process', area:'Reacquisition', p:'P3', lever:'New Angle Outreach', def_owner:'Relations Team', effort:'Medium',
+   action:'For archived deals, reach out with a completely different angle (different product feature or creator benefit) — not the same pitch that was rejected.',
+   note:'', impact:'Converts 10–15% of previously rejected creators on second attempt'},
+  // DASHBOARD
+  {id:11,stream:'Dashboard', area:'All', p:'P0', lever:'App & Channel Audit', def_owner:'Tech Team', effort:'Low',
+   action:'Map every tool in use — Email, WhatsApp, Euka, Cruva — what data each captures, who uses it, and where it lives.',
+   note:'Goal: <b>single source of truth</b> across all outreach channels before building anything on top.',
+   impact:'One place to see all creator conversations across all 4 channels'},
+  {id:12,stream:'Dashboard', area:'All', p:'P0', lever:'WhatsApp Data Capture', def_owner:'Relations Team', effort:'Medium',
+   action:'Log all WA conversations into a central tracker — creator handle, PM name, date contacted, replied Y/N, and outcome.',
+   note:'', impact:'Negotiation TAT and deal outcomes become trackable for the first time'},
+  {id:13,stream:'Dashboard', area:'All', p:'P0', lever:'Unified Outreach Dashboard', def_owner:'Relations + Tech', effort:'Medium',
+   action:'Build one view showing all 4 channels — volume sent, reply rate, WA captured — per PM, per channel, per week.',
+   note:'', impact:'Full cross-channel visibility in one place — no more switching between apps'},
+  {id:14,stream:'Dashboard', area:'All', p:'P1', lever:'Channel Standardisation', def_owner:'Relations + Acquisition + Tech', effort:'Low',
+   action:'Agree on a common set of fields for every creator conversation across all 4 channels — who contacted them, when, what they replied, what happened next.',
+   note:'Standardisation means apples-to-apples comparison across channels becomes possible.',
+   impact:'Apples-to-apples channel comparison · enables automation later'},
+  {id:15,stream:'Dashboard', area:'All', p:'P1', lever:'Euka & Cruva Integration', def_owner:'Tech Team', effort:'High',
+   action:'Pull outreach activity from Euka and Cruva into the central dashboard — messages sent, replies received, current status per creator.',
+   note:'', impact:'Eliminates manual reporting · outreach metrics auto-populate'},
+  {id:16,stream:'Dashboard', area:'All', p:'P2', lever:'Archive Dead Deals View', def_owner:'Relations Team', effort:'Low',
+   action:'Every week, archive all deals silent for 7+ days. Add a dedicated Archive view in the dashboard to track reactivation candidates.',
+   note:'', impact:'Cleaner pipeline · accurate close rate visibility'},
+  // SCALE
+  {id:17,stream:'Scale', area:'Acquisition', p:'P3', lever:'Volume Scale (300/mo)', def_owner:'Acquisition Team', effort:'Medium',
    action:'Hit the 300/month handover target. Currently at 143 (47%). Needs to increase daily pace from 4.6 to 9.7 creators/day.',
-   note:'Do this only after upstream quality filter (row 6) is in place.',
+   note:'Do this only after upstream quality filter (id 2) is in place.',
    impact:'Double top-funnel volume with qualified leads'},
-
-  {id:12,p:'P3', lever:'Hiring',                     cat:'Headcount',    def_owner:'Relations + Acquisition + Tech',effort:'High',
+  {id:18,stream:'Scale', area:'All', p:'P3', lever:'Hiring', def_owner:'Relations + Acquisition + Tech', effort:'High',
    action:'Add trained PMs only after pipeline quality and the negotiation SLA process are both working.',
    note:'Premature hiring on a broken process creates more stuck deals, not more closes.',
    impact:'Right-size team to handle 300 qualified leads/month'},
@@ -645,8 +674,104 @@ const PRIORITY_DATA=[
 
 function savePF(id,f,v){localStorage.setItem('pf_'+id+'_'+f,v);}
 function getPF(id,f,def){const v=localStorage.getItem('pf_'+id+'_'+f);return v!==null?v:def;}
-function catBadge(c){const m={Foundation:'nk',Dashboarding:'nf',Process:'nc',Acquisition:'np',Outreach:'nr2',Headcount:'nm'};return`<span class="nxt ${m[c]||'nm'}" style="font-size:9px;">${c}</span>`;}
+function streamBadge(s){const m={Process:'nf',Dashboard:'np',Scale:'nk'};return`<span class="nxt ${m[s]||'nm'}" style="font-size:9px;">${s}</span>`;}
+function areaBadge(a){const m={Acquisition:'nc',Retention:'nr2',Reactivation:'ss-call',Reacquisition:'ss-appr',All:'nm'};return`<span class="nxt ${m[a]||'nm'}" style="font-size:9px;">${a}</span>`;}
 function statusColor(s){return{'Done':'var(--good)','Blocked':'var(--bad)','In Progress':'var(--accent)','Not Started':'var(--muted)'}[s]||'var(--muted)';}
+
+const SWIM_STATUS_CYCLE=['Not Started','In Progress','Done','Blocked'];
+const SWIM_DOTS={'Not Started':'⬜','In Progress':'🔵','Done':'✅','Blocked':'🔴'};
+
+function renderStreamProgress(){
+  const tracks=[
+    {key:'Process',   label:'Process Track',   icon:'⚙',  fill:'#1D4ED8'},
+    {key:'Dashboard', label:'Dashboard Track', icon:'📊', fill:'#15803D'},
+    {key:'Scale',     label:'Scale Track',     icon:'📈', fill:'#7C3AED'},
+  ];
+  document.getElementById('streamProgress').innerHTML=tracks.map(t=>{
+    const items=PRIORITY_DATA.filter(d=>d.stream===t.key);
+    const done=items.filter(d=>getPF(d.id,'status','Not Started')==='Done').length;
+    const inp =items.filter(d=>getPF(d.id,'status','Not Started')==='In Progress').length;
+    const donePct=items.length?Math.round(done/items.length*100):0;
+    const inpPct =items.length?Math.round(inp/items.length*100):0;
+    return`<div class="pbar-wrap">
+      <div class="pbar-header">
+        <span class="title">${t.icon} ${t.label}</span>
+        <span class="nums">${done}/${items.length} done</span>
+      </div>
+      <div class="pbar-track" style="height:10px;">
+        <div style="height:100%;display:flex;border-radius:999px;overflow:hidden;">
+          <div style="width:${donePct}%;background:${t.fill};"></div>
+          <div style="width:${inpPct}%;background:${t.fill}55;"></div>
+        </div>
+      </div>
+      <div class="pbar-meta"><span>${inp} in progress</span><span class="flag ${donePct===100?'green':''}">${donePct}% complete</span></div>
+    </div>`;
+  }).join('');
+}
+
+function swimCard(d){
+  const status=getPF(d.id,'status','Not Started');
+  const prio=getPF(d.id,'priority',d.p);
+  const pColors={P0:'var(--bad)',P1:'var(--warn)',P2:'var(--accent)',P3:'var(--muted)'};
+  const isDone=status==='Done';
+  const statusTag=status!=='Not Started'
+    ?`<span style="font-size:10px;font-weight:600;color:${isDone?'var(--good)':status==='Blocked'?'var(--bad)':'var(--accent)'};">${status}</span>`
+    :'';
+  return`<div class="swim-item${isDone?' done':''}">
+    <span class="swim-dot" data-swid="${d.id}" title="Click to cycle status">${SWIM_DOTS[status]||'⬜'}</span>
+    <div style="flex:1;min-width:0;">
+      <div class="swim-lever">${d.lever}</div>
+      <div class="swim-tags">
+        <span style="font-size:10px;font-weight:700;color:${pColors[prio]||'var(--muted)'};">${prio}</span>
+        <span style="font-size:10px;color:var(--muted);">${d.def_owner}</span>
+        ${statusTag}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderSwimlane(){
+  const processAreas=['Acquisition','Retention','Reactivation','Reacquisition'];
+  const procItems=PRIORITY_DATA.filter(d=>d.stream==='Process');
+  const dashItems=PRIORITY_DATA.filter(d=>d.stream==='Dashboard');
+  const scaleItems=PRIORITY_DATA.filter(d=>d.stream==='Scale');
+  const doneOf=arr=>arr.filter(d=>getPF(d.id,'status','Not Started')==='Done').length;
+
+  const leftCol=`<div class="stream-col">
+    <div class="stream-col-hdr process"><span>⚙ Process Track</span><span>${doneOf(procItems)}/${procItems.length} done</span></div>
+    ${processAreas.map(area=>{
+      const ai=procItems.filter(d=>d.area===area);
+      if(!ai.length)return'';
+      return`<div class="area-group"><div class="area-lbl" style="color:var(--ink-soft);">${area}</div>${ai.map(swimCard).join('')}</div>`;
+    }).join('')}
+  </div>`;
+
+  const rightCol=`<div class="stream-col">
+    <div class="stream-col-hdr dashboard"><span>📊 Dashboard Track</span><span>${doneOf(dashItems)}/${dashItems.length} done</span></div>
+    <div class="area-group">${dashItems.map(swimCard).join('')}</div>
+    <div style="margin-top:16px;">
+      <div class="stream-col-hdr" style="background:#EDE9FE;color:#5B21B6;border-radius:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:8px 12px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+        <span>📈 Scale Track</span><span>${doneOf(scaleItems)}/${scaleItems.length} done</span>
+      </div>
+      <div class="area-group">${scaleItems.map(swimCard).join('')}</div>
+    </div>
+  </div>`;
+
+  document.getElementById('swimlane').innerHTML=leftCol+rightCol;
+
+  document.querySelectorAll('.swim-dot').forEach(dot=>{
+    dot.addEventListener('click',()=>{
+      const id=+dot.dataset.swid;
+      const cur=getPF(id,'status','Not Started');
+      const nxt=SWIM_STATUS_CYCLE[(SWIM_STATUS_CYCLE.indexOf(cur)+1)%SWIM_STATUS_CYCLE.length];
+      savePF(id,'status',nxt);
+      renderStreamProgress(); renderSwimlane(); renderPriorityProgress();
+      // sync detail table if rendered
+      const sel=document.querySelector(`#priorityTable select[data-id="${id}"][data-field="status"]`);
+      if(sel){sel.value=nxt;sel.style.color=statusColor(nxt);sel.closest('tr').classList.toggle('row-done',nxt==='Done');}
+    });
+  });
+}
 
 function renderPriorityProgress(){
   const levels=['P0','P1','P2','P3'];
@@ -664,6 +789,8 @@ function renderPriorityProgress(){
 
 function renderPriorities(){
   renderPriorityProgress();
+  renderStreamProgress();
+  renderSwimlane();
   const statusOpts=['Not Started','In Progress','Done','Blocked'];
   const effortOpts=['Low','Medium','High'];
   const prioOpts=['P0','P1','P2','P3'];
@@ -679,8 +806,9 @@ function renderPriorities(){
     <thead><tr>
       <th style="width:28px;">#</th>
       <th style="min-width:70px;">Priority</th>
+      <th style="min-width:80px;">Stream</th>
+      <th style="min-width:100px;">Area</th>
       <th style="min-width:140px;">Lever</th>
-      <th style="min-width:100px;">Category</th>
       <th style="min-width:280px;">Action &amp; Impact</th>
       <th style="min-width:90px;">Effort</th>
       <th style="min-width:200px;">Owner</th>
@@ -702,8 +830,9 @@ function renderPriorities(){
             ${prioOpts.map(p=>`<option value="${p}"${p===prio?' selected':''}>${p}</option>`).join('')}
           </select>
         </td>
+        <td>${streamBadge(d.stream)}</td>
+        <td>${areaBadge(d.area)}</td>
         <td style="font-weight:700;font-size:12px;">${d.lever}</td>
-        <td>${catBadge(d.cat)}</td>
         <td>
           <div class="prio-action">${d.action}</div>
           ${d.note?`<div style="font-size:10px;color:var(--accent);margin-top:4px;background:var(--accent-bg);padding:3px 7px;border-radius:5px;">${d.note}</div>`:''}
@@ -733,7 +862,10 @@ function renderPriorities(){
       if(el.dataset.field==='status'){
         el.style.color=statusColor(el.value);
         el.closest('tr').classList.toggle('row-done',el.value==='Done');
-        renderPriorityProgress();
+        renderPriorityProgress(); renderStreamProgress();
+        // sync swimlane dot if visible
+        const dot=document.querySelector(`.swim-dot[data-swid="${el.dataset.id}"]`);
+        if(dot){dot.textContent=SWIM_DOTS[el.value]||'⬜';dot.closest('.swim-item')?.classList.toggle('done',el.value==='Done');}
       }
       if(el.dataset.field==='priority'){
         el.style.color=prioColors[el.value]||'var(--muted)';
