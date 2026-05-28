@@ -215,6 +215,15 @@ tr.pm-row.sel td{background:var(--accent-bg)!important;}
 /* ── MISC ── */
 .chart-wrap{position:relative;height:280px;}
 footer{text-align:center;font-size:11px;color:var(--muted);padding:20px;border-top:1px solid var(--line);}
+
+/* ── PRIORITIES TABLE ── */
+.edit-input{border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px;background:var(--bg);color:var(--ink);outline:none;font-family:inherit;}
+.edit-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg);}
+.edit-select{border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px;font-weight:700;background:var(--bg);cursor:pointer;outline:none;font-family:inherit;}
+.edit-select:focus{border-color:var(--accent);}
+tr.row-done td{opacity:0.4;}
+.prio-action{font-size:12px;color:var(--ink-soft);line-height:1.5;}
+.prio-impact{font-size:10px;color:var(--muted);margin-top:3px;}
 </style>
 </head>
 <body>
@@ -241,6 +250,7 @@ footer{text-align:center;font-size:11px;color:var(--muted);padding:20px;border-t
   <button class="tab-btn" data-tab="pipeline">Pipeline & Targets</button>
   <button class="tab-btn" data-tab="conversations">Conversations & Conversion</button>
   <button class="tab-btn" data-tab="tat">TAT Analysis</button>
+  <button class="tab-btn" data-tab="priorities">Priorities & Actions</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════
@@ -496,6 +506,30 @@ footer{text-align:center;font-size:11px;color:var(--muted);padding:20px;border-t
 
 </div><!-- /page-tat -->
 
+<!-- ═══════════════════════════════════════════════════
+     PAGE 5 — PRIORITIES & ACTIONS
+════════════════════════════════════════════════════ -->
+<div class="page" id="page-priorities">
+
+  <section>
+    <div class="sh"><h2>Action Plan · 12 priorities</h2><span class="hint">Click any field to edit · saves automatically in your browser</span></div>
+    <div class="grid kpis-4" id="priorityProgress"></div>
+  </section>
+
+  <section>
+    <div class="panel" style="padding:0;overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table id="priorityTable"></table>
+      </div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+      <button id="resetPriorities" style="padding:6px 14px;border-radius:8px;border:1px solid var(--line);font-size:12px;cursor:pointer;background:var(--card-alt);color:var(--muted);">↺ Reset all to defaults</button>
+      <span style="font-size:11px;color:var(--muted);" id="prioritySaved"></span>
+    </div>
+  </section>
+
+</div><!-- /page-priorities -->
+
 <footer>Creator Acquisition · Funnel Cockpit v3 · Owner: Viral Desai · Mosaic Wellness · Auto-refreshes every 60s</footer>
 </div><!-- /shell -->
 
@@ -534,6 +568,104 @@ function nxtBadge(nx){
 function staleBadge(d){ if(d==null)return'<span style="color:var(--muted)">—</span>'; if(d>=5)return`<span class="stale sh-hot">${d}d ago</span>`; if(d>=3)return`<span class="stale sh-warm">${d}d ago</span>`; return`<span class="stale sh-ok">${d}d ago</span>`; }
 function rateColor(r){ if(r>=20)return'color:var(--good);font-weight:700;'; if(r>=12)return'color:var(--warn);font-weight:700;'; return'color:var(--bad);font-weight:700;'; }
 function killChart(id){ if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];} }
+
+// ════════════════════════════════
+// PAGE 5 — PRIORITIES & ACTIONS
+// ════════════════════════════════
+const PRIORITY_DATA=[
+  {id:1, p:'P0', lever:'App & Channel Audit',         cat:'Foundation',   action:'Map every tool in use — Email, Chat, Yoka Kruva, WhatsApp — what data each captures, who uses it, where it lives', impact:'Single source of truth before building anything', def_owner:'Tech / Ops Lead', effort:'Low'},
+  {id:2, p:'P0', lever:'Unified Outreach Dashboard',  cat:'Dashboarding', action:'Build one view showing all channels: volume sent, reply rate, WA captured — per PM per channel',                  impact:'Full cross-channel visibility in one place',      def_owner:'Tech / Ops Lead', effort:'Medium'},
+  {id:3, p:'P0', lever:'WhatsApp Data Capture',       cat:'Dashboarding', action:'Log all WA conversations into central tracker — creator handle, PM, date contacted, reply Y/N, outcome',          impact:'Negotiation TAT and deal outcomes become trackable', def_owner:'Relations Lead', effort:'Medium'},
+  {id:4, p:'P1', lever:'Yoka Kruva Integration',      cat:'Dashboarding', action:'Pull Yoka Kruva outreach activity into the central dashboard — sent, replies, current status',                     impact:'Eliminates manual reporting · auto-populates metrics', def_owner:'Tech Lead',   effort:'High'},
+  {id:5, p:'P1', lever:'Channel Standardisation',     cat:'Process',      action:'Define common tracking fields across all channels — handle, PM, date, stage, outcome',                            impact:'Unified conversion rate per channel calculable',  def_owner:'Relations Lead', effort:'Low'},
+  {id:6, p:'P1', lever:'Upstream Quality Filter',     cat:'Acquisition',  action:'Add pre-qualification checklist before handover — niche fit, BOF check, affiliate account active',                impact:'WA capture rate 17% → 30%+ · PM waste −50%',     def_owner:'Acquisition Lead', effort:'Low'},
+  {id:7, p:'P1', lever:'Negotiation SLA',             cat:'Process',      action:'Set 48-hour counter-offer SLA — if no reply in 48h, escalate or send forcing function to creator',               impact:'Unlock 30–40 deals · nego TAT 13d → <8d',        def_owner:'Relations Lead', effort:'Low'},
+  {id:8, p:'P2', lever:'Channel Mix Shift',           cat:'Outreach',     action:'Shift Affiliate Chat volume (7% WA rate) to Email outreach (25% WA rate)',                                       impact:'WA capture rate +5–8% with same headcount',       def_owner:'Relations Lead', effort:'Low'},
+  {id:9, p:'P2', lever:'Message Hook Template',       cat:'Outreach',     action:'Standardise opening message — one tested template per channel, A/B test 2 versions',                             impact:'Ghost rate 43% → ~25%',                           def_owner:'PMs',           effort:'Medium'},
+  {id:10,p:'P2', lever:'Archive Dead Deals',          cat:'Process',      action:'Archive all deals silent for 7+ days — stop carrying dead weight in active pipeline',                             impact:'Cleaner pipeline · accurate conversion visibility', def_owner:'Relations Lead', effort:'Low'},
+  {id:11,p:'P3', lever:'Volume Scale',                cat:'Acquisition',  action:'Hit 300/month handover target — currently at 143 (47% of target)',                                               impact:'Double top-funnel volume once quality is fixed',   def_owner:'Acquisition Lead', effort:'Medium'},
+  {id:12,p:'P3', lever:'Hiring',                      cat:'Headcount',    action:'Add trained PMs only after pipeline quality and process are fixed',                                               impact:'Right-size team for 300/month qualified leads',   def_owner:'Head of Relations', effort:'High'},
+];
+
+function savePF(id,f,v){localStorage.setItem('pf_'+id+'_'+f,v);}
+function getPF(id,f,def){const v=localStorage.getItem('pf_'+id+'_'+f);return v!==null?v:def;}
+function prioBadge(p){const m={P0:'nx',P1:'nc',P2:'nf',P3:'nm'};return`<span class="nxt ${m[p]||'nm'}">${p}</span>`;}
+function catBadge(c){const m={Foundation:'nk',Dashboarding:'nf',Process:'nc',Acquisition:'np',Outreach:'nr2',Headcount:'nm'};return`<span class="nxt ${m[c]||'nm'}" style="font-size:9px;">${c}</span>`;}
+function effortBadge(e){const m={Low:'np',Medium:'nc',High:'nx'};return`<span class="nxt ${m[e]||'nm'}" style="font-size:9px;">${e}</span>`;}
+function statusColor(s){return{'Done':'var(--good)','Blocked':'var(--bad)','In Progress':'var(--accent)','Not Started':'var(--muted)'}[s]||'var(--muted)';}
+
+function renderPriorityProgress(){
+  const levels=['P0','P1','P2','P3'];
+  const lnames={P0:'Critical · P0',P1:'High · P1',P2:'Medium · P2',P3:'Low · P3'};
+  const lcls={P0:'red',P1:'amber',P2:'blue',P3:''};
+  document.getElementById('priorityProgress').innerHTML=levels.map(p=>{
+    const items=PRIORITY_DATA.filter(d=>d.p===p);
+    const done=items.filter(d=>getPF(d.id,'status','Not Started')==='Done').length;
+    const inprog=items.filter(d=>getPF(d.id,'status','Not Started')==='In Progress').length;
+    const blk=items.filter(d=>getPF(d.id,'status','Not Started')==='Blocked').length;
+    const cls=done===items.length?'green':inprog>0||done>0?'amber':'';
+    const sub=done===items.length?'All done ✓':inprog+' in progress'+(blk>0?', '+blk+' blocked':'');
+    return`<div class="kpi ${cls}"><div class="lbl">${lnames[p]}</div><div class="val">${done}/${items.length}</div><div class="sub">${sub}</div></div>`;
+  }).join('');
+}
+
+function renderPriorities(){
+  renderPriorityProgress();
+  const statusOpts=['Not Started','In Progress','Done','Blocked'];
+  document.getElementById('priorityTable').innerHTML=`
+    <thead><tr>
+      <th style="width:28px;">#</th>
+      <th style="width:44px;">P</th>
+      <th style="min-width:140px;">Lever</th>
+      <th style="min-width:100px;">Category</th>
+      <th style="min-width:260px;">Action &amp; Impact</th>
+      <th style="width:60px;">Effort</th>
+      <th style="min-width:120px;">Owner</th>
+      <th style="min-width:140px;">Status</th>
+      <th style="min-width:130px;">Target Date</th>
+      <th style="min-width:200px;">Notes</th>
+    </tr></thead>
+    <tbody>${PRIORITY_DATA.map(d=>{
+      const status=getPF(d.id,'status','Not Started');
+      const owner=getPF(d.id,'owner',d.def_owner);
+      const date=getPF(d.id,'date','');
+      const notes=getPF(d.id,'notes','');
+      return`<tr class="${status==='Done'?'row-done':''}">
+        <td style="color:var(--muted);font-weight:700;font-size:11px;">${d.id}</td>
+        <td>${prioBadge(d.p)}</td>
+        <td style="font-weight:700;font-size:12px;">${d.lever}</td>
+        <td>${catBadge(d.cat)}</td>
+        <td><div class="prio-action">${d.action}</div><div class="prio-impact">→ ${d.impact}</div></td>
+        <td>${effortBadge(d.effort)}</td>
+        <td><input class="edit-input" type="text" value="${owner.replace(/"/g,'&quot;')}" data-id="${d.id}" data-field="owner" style="width:110px;"/></td>
+        <td><select class="edit-select" data-id="${d.id}" data-field="status" style="color:${statusColor(status)};width:130px;">
+          ${statusOpts.map(s=>`<option value="${s}"${s===status?' selected':''}>${s}</option>`).join('')}
+        </select></td>
+        <td><input class="edit-input" type="date" value="${date}" data-id="${d.id}" data-field="date"/></td>
+        <td><input class="edit-input" type="text" value="${notes.replace(/"/g,'&quot;')}" data-id="${d.id}" data-field="notes" placeholder="add note…" style="width:185px;"/></td>
+      </tr>`;
+    }).join('')}</tbody>`;
+
+  document.querySelectorAll('#priorityTable .edit-input,#priorityTable .edit-select').forEach(el=>{
+    el.addEventListener('change',()=>{
+      savePF(el.dataset.id,el.dataset.field,el.value);
+      if(el.dataset.field==='status'){
+        el.style.color=statusColor(el.value);
+        el.closest('tr').classList.toggle('row-done',el.value==='Done');
+        renderPriorityProgress();
+      }
+      const s=document.getElementById('prioritySaved');
+      if(s){s.textContent='Saved ✓';setTimeout(()=>s.textContent='',2000);}
+    });
+    if(el.tagName==='INPUT') el.addEventListener('blur',()=>savePF(el.dataset.id,el.dataset.field,el.value));
+  });
+
+  document.getElementById('resetPriorities').onclick=()=>{
+    if(!confirm('Reset all statuses, dates, and notes to defaults?'))return;
+    PRIORITY_DATA.forEach(d=>['status','owner','date','notes'].forEach(f=>localStorage.removeItem('pf_'+d.id+'_'+f)));
+    renderPriorities();
+  };
+}
 
 // ── NEGOTIATION SUB-STAGE CLASSIFICATION ──
 const SUBSTAGES=[
@@ -978,7 +1110,7 @@ function renderTAT() {
 // ════════════════════════════════
 // INIT & PLUMBING
 // ════════════════════════════════
-const RENDERED={pipeline:false,conversations:false,tat:false};
+const RENDERED={pipeline:false,conversations:false,tat:false,priorities:false};
 function renderLastUpdated() {
   document.getElementById('lastUpd').textContent='Updated '+new Date().toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'});
 }
@@ -991,7 +1123,7 @@ async function init() {
   // page 1 always (visible on load)
   renderKPIs(); renderFunnel(); renderFunnelDrops(); renderPMTable(); renderActions(); renderStuck(); renderMatrix(); renderDealTable(); renderNegoDepth();
   // reset lazy flags so charts re-draw after a refresh
-  RENDERED.pipeline=false; RENDERED.conversations=false; RENDERED.tat=false;
+  RENDERED.pipeline=false; RENDERED.conversations=false; RENDERED.tat=false; RENDERED.priorities=false;
   // render whichever tab is currently active
   const activeTab=document.querySelector('.tab-btn.active')?.dataset?.tab;
   if(activeTab==='pipeline'){renderPipeline();RENDERED.pipeline=true;}
@@ -1012,6 +1144,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
       if(tab==='pipeline'&&!RENDERED.pipeline){renderPipeline();RENDERED.pipeline=true;}
       else if(tab==='conversations'&&!RENDERED.conversations){renderConversations();RENDERED.conversations=true;}
       else if(tab==='tat'&&!RENDERED.tat){renderTAT();RENDERED.tat=true;}
+      else if(tab==='priorities'&&!RENDERED.priorities){renderPriorities();RENDERED.priorities=true;}
       // resize any already-rendered charts (handles 0-size render on hidden canvas)
       setTimeout(()=>Object.values(CHARTS).forEach(c=>{try{c.resize();}catch(e){}}),60);
     }
