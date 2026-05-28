@@ -575,7 +575,7 @@ function killChart(id){ if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];} 
 const OWNER_OPTS=[
   'Relations Team',
   'Acquisition Team',
-  'Tech & Ops',
+  'Tech Team',
   'Relations + Tech',
   'Relations + Acquisition',
   'Acquisition + Tech',
@@ -670,10 +670,12 @@ function renderPriorities(){
   const prioColors={P0:'var(--bad)',P1:'var(--warn)',P2:'var(--accent)',P3:'var(--muted)'};
   const effortColors={Low:'var(--good)',Medium:'var(--warn)',High:'var(--bad)'};
 
-  // Build datalist once
-  const datalist=`<datalist id="owner-list">${OWNER_OPTS.map(o=>`<option value="${o}">`).join('')}</datalist>`;
+  // Inject datalist into body (must be outside table or browser strips it)
+  let dl=document.getElementById('owner-list');
+  if(!dl){dl=document.createElement('datalist');dl.id='owner-list';document.body.appendChild(dl);}
+  dl.innerHTML=OWNER_OPTS.map(o=>`<option value="${o}">`).join('');
 
-  document.getElementById('priorityTable').innerHTML=datalist+`
+  document.getElementById('priorityTable').innerHTML=`
     <thead><tr>
       <th style="width:28px;">#</th>
       <th style="min-width:70px;">Priority</th>
